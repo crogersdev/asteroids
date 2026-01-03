@@ -1,9 +1,9 @@
 #pragma once
 
-#include "animated-sprite.hpp"
-
 #include <raylib.h>
 
 namespace crogersdev {
+
+
 
 }

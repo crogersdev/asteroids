@@ -1,23 +1,26 @@
 #include "raylib.h"
 
-#include <vector>
-#include <algorithm>   // std::clamp
+#include "entities.hpp"
+#include "components.hpp"
+#include "systems.hpp"
 
 const bool DEBUG_GAME = false;
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
+using namespace crogersdev;
+
 void drawDebug() {
-    
+
 }
 
 int main(void) {
 
     if (DEBUG_GAME) {
-        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Falling Tunnel");
+        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids!");
     } else {
-        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "DEBUG Falling Tunnel");
+        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "DEBUG Asteroids!");
     }
 
     SetTargetFPS(60);
