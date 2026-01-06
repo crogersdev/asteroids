@@ -21,8 +21,11 @@ struct Player {
 
 inline Player createPlayer(Vector2 initialPosition, Vector2) {
     return Player{
-        Transform{ Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHTjkkk
-    };
+        Transform{ initialPosition, 0.f, 0.f },
+        Velocity{ Vector2{ 0.f, 0.f }, 0.f },
+        PlayerInput{ false, false, false, false };
+        Sprite{ LoadTexture("../res/PlayerShip/PlayerShipNormal/Player-Ship3.png"), Rectangle{ 0, 0, 
+
 }
 
 }
