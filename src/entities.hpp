@@ -12,20 +12,30 @@ using Entity = uint16_t;
 static Entity entity_id = 0;
 
 struct Player {
-    Transform transform;
-    Velocity velocity;
     PlayerInput input;
-    Sprite sprite;
+    Transform transform;
     WeaponCooldown cooldown;
+    Velocity velocity;
 };
 
-inline Player createPlayer(Vector2 initialPosition, Vector2) {
-    return Player{
-        Transform{ initialPosition, 0.f, 0.f },
-        Velocity{ Vector2{ 0.f, 0.f }, 0.f },
-        PlayerInput{ false, false, false, false };
-        Sprite{ LoadTexture("../res/PlayerShip/PlayerShipNormal/Player-Ship3.png"), Rectangle{ 0, 0, 
+struct SpritePlayer : Player {
+    Sprite shipSprite;
+};
 
-}
+struct PolygonPlayer : Player {
+    PolygonShip ship;
+};
+
+inline SpritePlayer createSpritePlayer(Vector2 initialPosition) {
+    return SpritePlayer{
+        PlayerInput{ false, false, false, false },
+        Transform{ initialPosition, 0.f, 0.f },
+        WeaponCooldown{ 1.5f },
+        Velocity{ Vector2{ 0.f, 0.f }, 0.f },
+        Sprite{
+            LoadTexture("../../res/player.png"),
+            Rectangle{ 0, 0, 32, 32 }
+        }
+    };
 
 }

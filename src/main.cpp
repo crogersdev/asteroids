@@ -1,9 +1,8 @@
-#include "raylib.h"
-
 #include "entities.hpp"
 #include "components.hpp"
 #include "systems.hpp"
-#include <cstdint>
+
+#include <raylib.h>
 
 const bool DEBUG_GAME = false;
 
@@ -20,16 +19,15 @@ void drawDebug() {
 int main(void) {
 
     if (DEBUG_GAME) {
-        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids!");
-    } else {
         InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "DEBUG Asteroids!");
+    } else {
+        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Asteroids!");
     }
     SetTargetFPS(60);
 
-    Entity player = createPlayer();
+    Player player = createPlayer(Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f });
 
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
         BeginDrawing();
@@ -38,6 +36,9 @@ int main(void) {
             if (DEBUG_GAME) {
                 drawDebug();
             }
+
+        renderSystem(player);
+
         EndDrawing();
     }
 
