@@ -29,7 +29,7 @@ struct PolygonPlayer : Player {
 inline SpritePlayer createSpritePlayer(Vector2 initialPosition) {
     return SpritePlayer{
         PlayerInput{ false, false, false, false },
-        Transform{ initialPosition, 0.f, 0.f },
+        Transform{ initialPosition, PI/2.f, 0.f },
         WeaponCooldown{ 1.5f },
         Velocity{ Vector2{ 0.f, 0.f }, 0.f },
         Sprite{
@@ -37,5 +37,24 @@ inline SpritePlayer createSpritePlayer(Vector2 initialPosition) {
             Rectangle{ 0, 0, 32, 32 }
         }
     };
+};
+
+inline PolygonPlayer createPolygonPlayer(Vector2 initialPosition) {
+    float x = initialPosition.x;
+    float y = initialPosition.y;
+    return PolygonPlayer{
+        PlayerInput{ false, false, false, false },
+        Transform{ initialPosition, PI/2.f, PI/32.f },
+        WeaponCooldown{ 1.5f },
+        Velocity{ Vector2{ 0.f, 0.f }, 0.f },
+        PolygonShip{ {
+            Line{{ x-10.f, y+4.f }, { x, y-14.f }, RED },
+            Line{{ x, y-14.f }, { x+10.f, y+4.f }, BLUE },
+            Line{{ x+10.f, y+4.f }, { x, y }, GREEN },
+            Line{{ x, y }, { x-10.f, y+4.f }, YELLOW },
+        }
+        }
+    };
+};
 
 }

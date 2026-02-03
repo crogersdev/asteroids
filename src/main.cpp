@@ -4,17 +4,12 @@
 
 #include <raylib.h>
 
-const bool DEBUG_GAME = false;
+const bool DEBUG_GAME = true;
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
 using namespace crogersdev;
-using Entity = std::uint16_t;
-
-void drawDebug() {
-
-}
 
 int main(void) {
 
@@ -25,7 +20,7 @@ int main(void) {
     }
     SetTargetFPS(60);
 
-    Player player = createPlayer(Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f });
+    PolygonPlayer player = createPolygonPlayer(Vector2{ SCREEN_WIDTH / 2.f, (SCREEN_HEIGHT / 2.f) + 3.f });
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -34,9 +29,10 @@ int main(void) {
             ClearBackground(BLACK);
 
             if (DEBUG_GAME) {
-                drawDebug();
+                drawDebugInfo(player);
             }
 
+        playerInputSystem(player);
         renderSystem(player);
 
         EndDrawing();
