@@ -29,7 +29,7 @@ struct PolygonPlayer : Player {
 inline SpritePlayer createSpritePlayer(Vector2 initialPosition) {
     return SpritePlayer{
         PlayerInput{ false, false, false, false },
-        Transform{ initialPosition, PI/2.f, 0.f },
+        Transform{ initialPosition, PI/120.f },
         WeaponCooldown{ 1.5f },
         Velocity{ Vector2{ 0.f, 0.f }, 0.f },
         Sprite{
@@ -44,7 +44,7 @@ inline PolygonPlayer createPolygonPlayer(Vector2 initialPosition) {
     float y = initialPosition.y;
     return PolygonPlayer{
         PlayerInput{ false, false, false, false },
-        Transform{ initialPosition, PI/2.f, PI/32.f },
+        Transform{ initialPosition, PI/120.f },
         WeaponCooldown{ 1.5f },
         Velocity{ Vector2{ 0.f, 0.f }, 0.f },
         PolygonShip{ {

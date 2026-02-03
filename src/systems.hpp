@@ -10,6 +10,27 @@ inline void drawDebugInfo(const PolygonPlayer &rPlayer) {
     DrawCircle(GetScreenWidth() / 2, GetScreenHeight() / 2, 2.0, WHITE);
 }
 
+inline void playerInputSystem(PolygonPlayer &rPlayer) {
+    bool input = false;
+
+    if (IsKeyDown(KEY_W)) {
+    }
+    if (IsKeyDown(KEY_A)) {
+        rPlayer.transform.rotationSpeed = -PI/120.f;
+        input = true;
+    }
+    if (IsKeyDown(KEY_S)) {
+    }
+    if (IsKeyDown(KEY_D)) {
+        rPlayer.transform.rotationSpeed = PI/120.f;
+        input = true;
+    }
+
+    if (!input) {
+        rPlayer.transform.rotationSpeed = 0.f;
+    }
+}
+
 inline void playerPositionUpdate(PolygonPlayer &rPlayer) {
     // apply rotation matrix
     auto center_x = rPlayer.transform.position.x;
@@ -21,35 +42,22 @@ inline void playerPositionUpdate(PolygonPlayer &rPlayer) {
         auto old_start_y = shipEdge.start.y - center_y;
         auto old_end_x = shipEdge.end.x - center_x;
         auto old_end_y = shipEdge.end.y - center_y;
-        auto new_start_x = old_start_x * cos(rotationSpeed) - old_start_y * sin(rotationSpeed);
-        auto new_start_y = old_start_x * sin(rotationSpeed) + old_start_y * cos(rotationSpeed);
-        auto new_end_x = old_end_x * cos(rotationSpeed) - old_end_y * sin(rotationSpeed);
-        auto new_end_y = old_end_x * sin(rotationSpeed) + old_end_y * cos(rotationSpeed);
+
+        auto theta = rPlayer.transform.rotationSpeed;
+
+        auto new_start_x = old_start_x * cos(theta) - old_start_y * sin(theta);
+        auto new_start_y = old_start_x * sin(theta) + old_start_y * cos(theta);
+        auto new_end_x = old_end_x * cos(theta) - old_end_y * sin(theta);
+        auto new_end_y = old_end_x * sin(theta) + old_end_y * cos(theta);
+
         new_start_x += center_x;
         new_start_y += center_y;
-        old_start_x += center_x;
-        old_start_y += center_y;
+        new_end_x += center_x;
+        new_end_y += center_y;
 
         shipEdge.start = Vector2{ new_start_x, new_start_y };
         shipEdge.end = Vector2{ new_end_x, new_end_y };
     }
-}
-
-inline void playerInputSystem(PolygonPlayer &rPlayer) {
-    auto rotationSpeed = rPlayer.transform.rotationSpeed;
-
-    if (IsKeyDown(KEY_W)) {
-    }
-    if (IsKeyDown(KEY_A)) {
-        rPlayer.transform.rotation -= rotationSpeed;
-    }
-    if (IsKeyDown(KEY_S)) {
-    }
-    if (IsKeyDown(KEY_D)) {
-        rPlayer.transform.rotation += rotationSpeed;
-    }
-
-    playerPositionUpdate(rPlayer);
 }
 
 inline void renderSystem(const PolygonPlayer &rPlayer) {
@@ -62,7 +70,6 @@ inline void renderSystem(const PolygonPlayer &rPlayer) {
     for (const auto& shipEdge: rPlayer.ship.lines) {
         DrawLineV(shipEdge.start, shipEdge.end, shipEdge.color);
     };
-
 }
 
 }
