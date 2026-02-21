@@ -1,5 +1,6 @@
 #pragma once
 
+#include "constants.hpp"
 #include "entities.hpp"
 
 #include <raylib.h>
@@ -16,13 +17,13 @@ inline void playerInputSystem(PolygonPlayer &rPlayer) {
     if (IsKeyDown(KEY_W)) {
     }
     if (IsKeyDown(KEY_A)) {
-        rPlayer.transform.rotationSpeed = -PI/120.f;
+        rPlayer.transform.rotationSpeed = -PLAYER_ROTATION_SPEED;
         input = true;
     }
     if (IsKeyDown(KEY_S)) {
     }
     if (IsKeyDown(KEY_D)) {
-        rPlayer.transform.rotationSpeed = PI/120.f;
+        rPlayer.transform.rotationSpeed = PLAYER_ROTATION_SPEED;
         input = true;
     }
 
@@ -35,7 +36,7 @@ inline void playerPositionUpdate(PolygonPlayer &rPlayer) {
     // apply rotation matrix
     auto center_x = rPlayer.transform.position.x;
     auto center_y = rPlayer.transform.position.y;
-    auto rotationSpeed = rPlayer.transform.rotationSpeed;
+    auto rotationSpeed = PLAYER_ROTATION_SPEED;
 
     for (auto& shipEdge: rPlayer.ship.lines) {
         auto old_start_x = shipEdge.start.x - center_x;

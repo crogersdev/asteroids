@@ -2,7 +2,7 @@
 
 #include <raylib.h>
 
-namespace crogersdev::colors {
+namespace crogersdev {
 
 // Reds
 const Color CRIMSON        = Color{ 220,  20,  60, 255 };
@@ -13,9 +13,8 @@ const Color CORAL          = Color{ 255, 127,  80, 255 };
 const Color TOMATO         = Color{ 255,  99,  71, 255 };
 
 // Oranges / Yellows
-const Color ORANGE         = Color{ 255, 165,   0, 255 };
 const Color DARK_ORANGE    = Color{ 255, 140,   0, 255 };
-const Color GOLD           = Color{ 255, 215,   0, 255 };
+const Color MY_GOLD        = Color{ 255, 215,   0, 255 };
 const Color AMBER          = Color{ 255, 191,   0, 255 };
 
 // Greens
@@ -34,9 +33,6 @@ const Color CYAN           = Color{   0, 255, 255, 255 };
 const Color TEAL           = Color{   0, 128, 128, 255 };
 
 // Purples / Pinks
-const Color PURPLE         = Color{ 128,   0, 128, 255 };
-const Color VIOLET         = Color{ 138,  43, 226, 255 };
-const Color MAGENTA        = Color{ 255,   0, 255, 255 };
 const Color HOT_PINK       = Color{ 255, 105, 180, 255 };
 const Color ORCHID         = Color{ 218, 112, 214, 255 };
 const Color INDIGO         = Color{  75,   0, 130, 255 };
