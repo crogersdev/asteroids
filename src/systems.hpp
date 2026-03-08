@@ -27,6 +27,10 @@ inline void playerInputSystem(PolygonPlayer &rPlayer) {
         input = true;
     }
 
+    if (IsKeyDown(KEY_SPACE)) {
+        rPlayer.timesFired.value++;
+    }
+
     if (!input) {
         rPlayer.transform.rotationSpeed = 0.f;
     }
@@ -36,7 +40,6 @@ inline void playerPositionUpdate(PolygonPlayer &rPlayer) {
     // apply rotation matrix
     auto center_x = rPlayer.transform.position.x;
     auto center_y = rPlayer.transform.position.y;
-    auto rotationSpeed = PLAYER_ROTATION_SPEED;
 
     for (auto& shipEdge: rPlayer.ship.lines) {
         auto old_start_x = shipEdge.start.x - center_x;
