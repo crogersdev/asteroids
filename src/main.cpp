@@ -1,5 +1,3 @@
-#include "entities.hpp"
-#include "components.hpp"
 #include "systems.hpp"
 
 #include <raylib.h>
@@ -20,6 +18,11 @@ int main(void) {
     }
     SetTargetFPS(60);
 
+    Registry registry = Registry();
+
+    gameInit(registry&, { SCREEN_WIDTH, SCREEN_HEIGHT });
+
+    // remove this when gameinit works
     PolygonPlayer player = createPolygonPlayer(Vector2{ SCREEN_WIDTH / 2.f, (SCREEN_HEIGHT / 2.f) + 3.f });
 
     while (!WindowShouldClose()) {

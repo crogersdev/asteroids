@@ -3,12 +3,69 @@
 #include "constants.hpp"
 #include "entities.hpp"
 
+#include <random>
+
 #include <raylib.h>
 
 namespace crogersdev {
 
 inline void drawDebugInfo(const PolygonPlayer &rPlayer) {
     DrawCircle(GetScreenWidth() / 2, GetScreenHeight() / 2, 2.0, WHITE);
+}
+
+inline void gameInit(Registry& registry, Vector2 screen) {
+    float x = screen.x;
+    float y = screen.y;
+    float c_x = x / 2.f;
+    float c_y = y / 2.f;
+
+    Entity player = registry.create();
+    registry.add(player, PlayerInput{ false, false, false, false });
+    registry.add(player, TimesFired{ 0 });
+    registry.add(player, Transform{ Vector2{ c_x, c_y }, PI / 120.f });
+    registry.add(player, Velocity{ Vector2{ 0.f, 0.f }, 0.f });
+    registry.add(player, WeaponCooldown{ 1.5f });
+    registry.add(player, PolygonShip{{
+        Line{{ c_x-10.f, c_y+4.f }, { c_x, c_y-14.f }, RED },
+        Line{{ c_x, c_y-14.f }, { c_x+10.f, c_y+4.f }, BLUE },
+        Line{{ c_x+10.f, c_y+4.f }, { c_x, c_y }, GREEN },
+        Line{{ c_x, c_y }, { c_x-10.f, c_y+4.f }, YELLOW },
+    }});
+
+    constexpr int initialAsteroids = 5;
+    std::array<Entity, initialAsteroids> asteroids;
+
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    int one_third_x = x / 3;
+    int one_third_y = y / 3;
+    int two_thirds_x = 2*x / 3;
+    int two_thirds_y = 2*y / 3;
+    int shift_x = x / 3;
+    int shift_y = y / 3;
+    std::uniform_int_distribution<int> dist_x(0, two_thirds_x);
+    std::uniform_int_distribution<int> dist_y(0, two_thirds_y);
+
+    for (int i = 0; i < initialAsteroids; ++i) {
+        float a_x = dist_x(gen);
+        if (a_x > one_third_x) a_x += one_third_x;
+
+        float a_y = dist_y(gen);
+        if (a_x > one_third_y) a_y += one_third_y;
+
+        asteroids[i] = registry.create();
+        registry.add(asteroids[i], Asteroid{{
+            Line{{ a_x-.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+            Line{{ a_x-10.f, a_y+4.f }, { a_x, a_y-14.f }, RED },
+        }});
+    }
 }
 
 inline void playerInputSystem(PolygonPlayer &rPlayer) {
