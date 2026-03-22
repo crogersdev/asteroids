@@ -20,7 +20,7 @@ int main(void) {
 
     Registry registry = Registry();
 
-    gameInit(registry);
+    game_init(registry);
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -33,7 +33,7 @@ int main(void) {
 
         EndDrawing();
 
-        playerInputSystem(registry);
+        player_input_system(registry);
     }
 
     CloseWindow();

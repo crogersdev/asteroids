@@ -14,7 +14,7 @@ using Entity = uint16_t;
 
 class Registry {
 private:
-    Entity nextId = 0;
+    Entity next_id = 0;
     std::unordered_map<std::type_index, std::any> pools;
 
     /*
@@ -41,7 +41,7 @@ private:
     */
 
     template<typename T>
-    std::unordered_map<Entity, T>& getPool() {
+    std::unordered_map<Entity, T>& get_pool() {
         auto key = std::type_index(typeid(T));
         if (pools.find(key) == pools.end()) {
             pools[key] = std::unordered_map<Entity, T>{};
@@ -49,28 +49,28 @@ private:
         return std::any_cast<std::unordered_map<Entity, T>&>(pools[key]);
     }
 public:
-    Entity create() { return nextId++; }
+    Entity create() { return next_id++; }
 
     template<typename T>
     void add(Entity e, T component) {
-        getPool<T>()[e] = std::move(component);
+        get_pool<T>()[e] = std::move(component);
     }
 
     template<typename T>
     T& get(Entity e) {
-        return getPool<T>().at(e);
+        return get_pool<T>().at(e);
     }
 
     template <typename T>
     bool has(Entity e) {
-        auto& pool = getPool<T>();
+        auto& pool = get_pool<T>();
         return pool.find(e) != pool.end();
     }
 
     template<typename First, typename... Rest>
     std::vector<Entity> view() {
         std::vector<Entity> matches = {};
-        for (auto& [id, _] : getPool<First>()) {
+        for (auto& [id, _] : get_pool<First>()) {
             if ((has<Rest>(id) && ...)) {
                 matches.push_back(id);
             }

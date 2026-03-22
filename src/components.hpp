@@ -8,11 +8,11 @@ namespace crogersdev {
 
 struct Line           { Vector2 start, end; Color color; float thickness; };
 struct Asteroid       { std::array<Line, 4> lines; };
-struct PlayerInput    { bool thrust, shoot, rotateLeft, rotateRight; };
+struct PlayerInput    { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip    { std::array<Line, 4> lines; };
 struct Size           { uint32_t size; };
 struct TimesFired     { uint32_t value; };
-struct Transform      { Vector2 position; float rotationSpeed; };
+struct Transform      { Vector2 position; float rotation_speed; };
 struct Velocity       { Vector2 direction; float speed; };
 struct WeaponCooldown { float timer; };
 

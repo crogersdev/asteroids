@@ -1,36 +1,33 @@
 #pragma once
 
-#include "constants.hpp"
 #include "entities.hpp"
 
 #include <random>
 
-#include <raymath.h>
 #include <raylib.h>
 
 namespace crogersdev {
 
-inline void drawDebugInfo() {
+inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2, GetScreenHeight() / 2, 2.0, WHITE);
 }
 
-inline void gameInit(Registry& registry) {
+inline void game_init(Registry& registry) {
     float x = GetScreenWidth();
     float y = GetScreenHeight();
-    float c_x = x / 2.f;
-    float c_y = y / 2.f;
+    Vector2 center = Vector2{ x / 2.f, y / 2.f };
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
     registry.add(player, TimesFired{ 0 });
-    registry.add(player, Transform{ Vector2{ c_x, c_y }, PI / 120.f });
+    registry.add(player, Transform{ Vector2{ center.x, center.y }, PI / 120.f });
     registry.add(player, Velocity{ Vector2{ 0.f, 0.f }, 0.f });
     registry.add(player, WeaponCooldown{ 1.5f });
     registry.add(player, PolygonShip{{
-        Line{{ c_x-10.f, c_y+4.f },  { c_x,      c_y-14.f }, RED },
-        Line{{ c_x,      c_y-14.f }, { c_x+10.f, c_y+4.f },  BLUE },
-        Line{{ c_x+10.f, c_y+4.f },  { c_x,      c_y },      GREEN },
-        Line{{ c_x,      c_y },      { c_x-10.f, c_y+4.f },  YELLOW },
+        Line{{ center.x-10.f, center.y+4.f },  { center.x,      center.y-14.f }, RED },
+        Line{{ center.x,      center.y-14.f }, { center.x+10.f, center.y+4.f },  BLUE },
+        Line{{ center.x+10.f, center.y+4.f },  { center.x,      center.y },      GREEN },
+        Line{{ center.x,      center.y },      { center.x-10.f, center.y+4.f },  YELLOW },
     }});
 
     constexpr int initialAsteroids = 5;
@@ -38,20 +35,18 @@ inline void gameInit(Registry& registry) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    int one_third_x = x / 3;
-    int one_third_y = y / 3;
-    int two_thirds_x = 2*x / 3;
-    int two_thirds_y = 2*y / 3;
-    std::uniform_int_distribution<int> dist_x(0, two_thirds_x);
-    std::uniform_int_distribution<int> dist_y(0, two_thirds_y);
+    Vector2 one_third = Vector2{ x / 3.f, y / 3.f };
+    Vector2 two_thirds = Vector2{ 2.f*x / 3.f, 2.f*y / 3.f };
+    std::uniform_int_distribution<int> dist_x(0, two_thirds.x);
+    std::uniform_int_distribution<int> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
 
     for (int i = 0; i < initialAsteroids; ++i) {
         float a_x = dist_x(gen);
-        if (a_x > one_third_x) a_x += one_third_x;
+        if (a_x > one_third.x) a_x += one_third.x;
 
         float a_y = dist_y(gen);
-        if (a_y > one_third_y) a_y += one_third_y;
+        if (a_y > one_third.y) a_y += one_third.y;
 
         asteroids[i] = registry.create();
         registry.add(asteroids[i], Asteroid{{
@@ -70,7 +65,7 @@ inline void gameInit(Registry& registry) {
     }
 }
 
-inline void playerInputSystem(Registry& registry) {
+inline void player_input_system(Registry& registry) {
     for (Entity& player_id : registry.view<PlayerInput>()) {
         auto& player = registry.get<PlayerInput>(player_id);
 
@@ -78,12 +73,12 @@ inline void playerInputSystem(Registry& registry) {
             player.thrust = true;
         }
         if (IsKeyDown(KEY_A)) {
-            player.rotateLeft = true;
+            player.rotate_left = true;
         }
         if (IsKeyDown(KEY_S)) {
         }
         if (IsKeyDown(KEY_D)) {
-            player.rotateRight = true;
+            player.rotate_right = true;
         }
         if (IsKeyDown(KEY_SPACE)) {
             player.shoot = true;
@@ -91,17 +86,17 @@ inline void playerInputSystem(Registry& registry) {
     }
 }
 
-inline void clearPlayerInputs(Registry& registry) {
+inline void clear_player_inputs(Registry& registry) {
     for (Entity& player_id : registry.view<PlayerInput>()) {
         auto& player = registry.get<PlayerInput>(player_id);
         player.thrust = false;
         player.shoot = false;
-        player.rotateLeft = false;
-        player.rotateRight = false;
+        player.rotate_left = false;
+        player.rotate_right = false;
     }
 }
 
-inline void fireFrequencySystem(Registry& registry) {
+inline void fire_frequency_system(Registry& registry) {
     for (Entity& shooter : registry.view<TimesFired>()) {
         // todo: you're going to have to add a clock system
         //       and component and when that's done you can
@@ -109,7 +104,7 @@ inline void fireFrequencySystem(Registry& registry) {
     }
 }
 
-inline void movementUpdateSystem(Registry& registry) {
+inline void movement_update_system(Registry& registry) {
     for (Entity& e : registry.view<Transform, Velocity>()) {
         auto& t = registry.get<Transform>(e);
         auto& v = registry.get<Velocity>(e);
@@ -126,21 +121,20 @@ inline void movementUpdateSystem(Registry& registry) {
 
         auto center = t.position;
 
-        for(auto& shipEdge : player.lines) {
+        for(auto& ship_edge : player.lines) {
             auto old_start = Vector2{
-                shipEdge.start.x - center.x,
-                shipEdge.start.y - center.y };
+                ship_edge.start.x - center.x,
+                ship_edge.start.y - center.y };
 
             auto old_end = Vector2{
-                shipEdge.end.x - center.x,
-                shipEdge.end.y - center.y };
+                ship_edge.end.x - center.x,
+                ship_edge.end.y - center.y };
 
-            Vector2 newStart = Vector2{};
-            Vector2 oldStart = Vector2{};
+            Vector2 new_start = Vector2{};
 
-            if (p.rotateLeft || p.rotateRight) {
-                auto theta = t.rotationSpeed;
-                if (p.rotateRight) { theta *= -1.f; }
+            if (p.rotate_left || p.rotate_right) {
+                auto theta = t.rotation_speed;
+                if (p.rotate_right) { theta *= -1.f; }
                 auto new_start = Vector2{
                     old_start.x * cos(theta) - old_start.y * sin(theta),
                     old_start.x * sin(theta) + old_start.y * cos(theta) };
@@ -154,8 +148,8 @@ inline void movementUpdateSystem(Registry& registry) {
                 new_end.x += center.x;
                 new_end.y += center.y;
 
-                shipEdge.start = new_start;
-                shipEdge.end = new_end;
+                ship_edge.start = new_start;
+                ship_edge.end = new_end;
             }
 
             if (p.thrust) {
@@ -168,7 +162,7 @@ inline void movementUpdateSystem(Registry& registry) {
     }
 }
 
-inline void renderSystem(Registry& registry) {
+inline void render_system(Registry& registry) {
     // note: raylib's approach is to have global access to raylib managed
     //       resources.  in this case, that's the window to which we render
     //       and draw all our stuff.  that means we can just straight up
@@ -176,8 +170,8 @@ inline void renderSystem(Registry& registry) {
 
     for (Entity& e : registry.view<PolygonShip>()) {
         auto& ship = registry.get<PolygonShip>(e);
-        for (auto& shipEdge : ship.lines) {
-            DrawLineV(shipEdge.start, shipEdge.end, shipEdge.color);
+        for (auto& ship_edge : ship.lines) {
+            DrawLineV(ship_edge.start, ship_edge.end, ship_edge.color);
         }
     }
     for (Entity& e : registry.view<Asteroid>()) {
@@ -188,3 +182,4 @@ inline void renderSystem(Registry& registry) {
     }
 }
 
+} // end namespace
