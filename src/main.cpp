@@ -20,10 +20,7 @@ int main(void) {
 
     Registry registry = Registry();
 
-    gameInit(registry&, { SCREEN_WIDTH, SCREEN_HEIGHT });
-
-    // remove this when gameinit works
-    PolygonPlayer player = createPolygonPlayer(Vector2{ SCREEN_WIDTH / 2.f, (SCREEN_HEIGHT / 2.f) + 3.f });
+    gameInit(registry);
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -32,14 +29,11 @@ int main(void) {
             ClearBackground(BLACK);
 
             if (DEBUG_GAME) {
-                drawDebugInfo(player);
             }
 
-        playerInputSystem(player);
-        playerPositionUpdate(player);
-        renderSystem(player);
-
         EndDrawing();
+
+        playerInputSystem(registry);
     }
 
     CloseWindow();

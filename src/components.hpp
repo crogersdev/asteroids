@@ -7,7 +7,7 @@
 namespace crogersdev {
 
 struct Line           { Vector2 start, end; Color color; float thickness; };
-struct Asteroid       { std::array<Line, 8> lines; };
+struct Asteroid       { std::array<Line, 4> lines; };
 struct PlayerInput    { bool thrust, shoot, rotateLeft, rotateRight; };
 struct PolygonShip    { std::array<Line, 4> lines; };
 struct Size           { uint32_t size; };
