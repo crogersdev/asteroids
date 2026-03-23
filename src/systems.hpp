@@ -134,7 +134,7 @@ inline void movement_update_system(Registry& registry) {
 
             if (p.rotate_left || p.rotate_right) {
                 auto theta = t.rotation_speed;
-                if (p.rotate_right) { theta *= -1.f; }
+                if (p.rotate_left) { theta *= -1.f; }
                 auto new_start = Vector2{
                     old_start.x * cos(theta) - old_start.y * sin(theta),
                     old_start.x * sin(theta) + old_start.y * cos(theta) };

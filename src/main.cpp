@@ -31,9 +31,11 @@ int main(void) {
             if (DEBUG_GAME) {
             }
 
+            player_input_system(registry);
+            movement_update_system(registry);
+            clear_player_inputs(registry);
+            render_system(registry);
         EndDrawing();
-
-        player_input_system(registry);
     }
 
     CloseWindow();
