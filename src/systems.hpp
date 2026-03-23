@@ -49,14 +49,14 @@ inline void game_init(Registry& registry) {
         if (a_y > one_third.y) a_y += one_third.y;
 
         asteroids[i] = registry.create();
-        registry.add(asteroids[i], Asteroid{{
-            Line{{ a_x-10.f, a_y+10.f }, { a_x-10.f, a_y-10.f }, RED },
-            Line{{ a_x-10.f, a_y-10.f }, { a_x+10.f, a_y-10.f }, RED },
-            Line{{ a_x+10.f, a_y-10.f }, { a_x+10.f, a_y+10.f }, RED },
-            Line{{ a_x+10.f, a_y+10.f }, { a_x-10.f, a_y+10.f }, RED },
-        }});
-
         registry.add(asteroids[i], Transform{ { a_x, a_y }, 0.0 });
+        registry.add(asteroids[i], Size{ 4 });
+        registry.add(asteroids[i], Asteroid{{
+            Line{{ -40.f, +40.f }, { -40.f, -40.f }, RED },
+            Line{{ -40.f, -40.f }, { +40.f, -40.f }, RED },
+            Line{{ +40.f, -40.f }, { +40.f, +40.f }, RED },
+            Line{{ +40.f, +40.f }, { -40.f, +40.f }, RED },
+        }});
 
         float theta = dist_theta(gen);
         float dir_x = cos(theta);
@@ -109,14 +109,26 @@ inline void movement_update_system(Registry& registry) {
         auto& t = registry.get<Transform>(e);
         auto& v = registry.get<Velocity>(e);
 
-        t.position.x += v.direction.x * v.speed * GetFrameTime();
-        t.position.y += v.direction.y * v.speed * GetFrameTime();
+        Vector2 dt_offset = { v.direction.x * v.speed * GetFrameTime(),
+                              v.direction.y * v.speed * GetFrameTime() };
 
-        auto& asteroid = registry.get<Asteroid>(e);
-        for (auto& edge : asteroid.lines) {
-            Vector2 start = { edge.start.x + t.position.x, edge.start.y + t.position.y };
-            Vector2 end   = { edge.end.x   + t.position.x, edge.end.y   + t.position.y };
-        }
+        t.position.x += dt_offset.x;
+        t.position.y += dt_offset.y;
+
+        auto w = GetScreenWidth();
+        auto h = GetScreenHeight();
+        // explain: if this is confusing, it's because we're using fmod to 
+        //          screen wrap but in a way that respects negative numbers
+        //          e.g.
+        //          x = -10, screen_width = 800
+        //          fmod(-10, 800) = -10
+        //          -10 + 800 = 790
+        //          fmod(790, 800) = 790
+        //          ^^^ if asteroid goes off left edge by 10.  rework with
+        //          positive 10 and you'll see you correctly get 10 with the same
+        //          code
+        t.position.x = fmod(fmod(t.position.x, w) + w, w);
+        t.position.y = fmod(fmod(t.position.y, h) + h, h);
     }
 
     for (Entity& e : registry.view<Transform, Velocity, PlayerInput, PolygonShip>()) {
@@ -178,10 +190,13 @@ inline void render_system(Registry& registry) {
             DrawLineV(ship_edge.start, ship_edge.end, ship_edge.color);
         }
     }
-    for (Entity& e : registry.view<Asteroid>()) {
+    for (Entity& e : registry.view<Asteroid, Transform>()) {
+        auto& transform = registry.get<Transform>(e);
         auto& asteroid = registry.get<Asteroid>(e);
         for (auto& asteroidEdge : asteroid.lines) {
-            DrawLineV(asteroidEdge.start, asteroidEdge.end, asteroidEdge.color);
+            DrawLineV({ asteroidEdge.start.x + transform.position.x, asteroidEdge.start.y + transform.position.y },
+                      { asteroidEdge.end.x + transform.position.x, asteroidEdge.end.y + transform.position.y },
+                      asteroidEdge.color);
         }
     }
 }
