@@ -15,13 +15,13 @@ inline void draw_debug_info() {
 inline void game_init(Registry& registry) {
     float x = GetScreenWidth();
     float y = GetScreenHeight();
-    Vector2 center = Vector2{ x / 2.f, y / 2.f };
+    Vector2 center = { x / 2.f, y / 2.f };
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
     registry.add(player, TimesFired{ 0 });
-    registry.add(player, Transform{ Vector2{ center.x, center.y }, PI / 120.f });
-    registry.add(player, Velocity{ Vector2{ 0.f, 0.f }, 0.f });
+    registry.add(player, Transform{ { center.x, center.y }, PI / 120.f });
+    registry.add(player, Velocity{ { 0.f, 0.f }, 0.f });
     registry.add(player, WeaponCooldown{ 1.5f });
     registry.add(player, PolygonShip{{
         Line{{ center.x-10.f, center.y+4.f },  { center.x,      center.y-14.f }, RED },
@@ -35,8 +35,8 @@ inline void game_init(Registry& registry) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    Vector2 one_third = Vector2{ x / 3.f, y / 3.f };
-    Vector2 two_thirds = Vector2{ 2.f*x / 3.f, 2.f*y / 3.f };
+    Vector2 one_third = { x / 3.f, y / 3.f };
+    Vector2 two_thirds = { 2.f*x / 3.f, 2.f*y / 3.f };
     std::uniform_int_distribution<int> dist_x(0, two_thirds.x);
     std::uniform_int_distribution<int> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
@@ -56,12 +56,12 @@ inline void game_init(Registry& registry) {
             Line{{ a_x+10.f, a_y+10.f }, { a_x-10.f, a_y+10.f }, RED },
         }});
 
-        registry.add(asteroids[i], Transform{ Vector2{ a_x, a_y }, 0.0 });
+        registry.add(asteroids[i], Transform{ { a_x, a_y }, 0.0 });
 
         float theta = dist_theta(gen);
         float dir_x = cos(theta);
         float dir_y = sin(theta);
-        registry.add(asteroids[i], Velocity{ Vector2{ dir_x, dir_y }, 100.f });
+        registry.add(asteroids[i], Velocity{ { dir_x, dir_y }, 100.f });
     }
 }
 
@@ -105,12 +105,18 @@ inline void fire_frequency_system(Registry& registry) {
 }
 
 inline void movement_update_system(Registry& registry) {
-    for (Entity& e : registry.view<Transform, Velocity>()) {
+    for (Entity& e : registry.view<Asteroid, Transform, Velocity>()) {
         auto& t = registry.get<Transform>(e);
         auto& v = registry.get<Velocity>(e);
 
         t.position.x += v.direction.x * v.speed * GetFrameTime();
         t.position.y += v.direction.y * v.speed * GetFrameTime();
+
+        auto& asteroid = registry.get<Asteroid>(e);
+        for (auto& edge : asteroid.lines) {
+            Vector2 start = { edge.start.x + t.position.x, edge.start.y + t.position.y };
+            Vector2 end   = { edge.end.x   + t.position.x, edge.end.y   + t.position.y };
+        }
     }
 
     for (Entity& e : registry.view<Transform, Velocity, PlayerInput, PolygonShip>()) {
@@ -122,24 +128,22 @@ inline void movement_update_system(Registry& registry) {
         auto center = t.position;
 
         for(auto& ship_edge : player.lines) {
-            auto old_start = Vector2{
+            Vector2 old_start = {
                 ship_edge.start.x - center.x,
                 ship_edge.start.y - center.y };
 
-            auto old_end = Vector2{
+            Vector2 old_end = {
                 ship_edge.end.x - center.x,
                 ship_edge.end.y - center.y };
-
-            Vector2 new_start = Vector2{};
 
             if (p.rotate_left || p.rotate_right) {
                 auto theta = t.rotation_speed;
                 if (p.rotate_left) { theta *= -1.f; }
-                auto new_start = Vector2{
+                Vector2 new_start = {
                     old_start.x * cos(theta) - old_start.y * sin(theta),
                     old_start.x * sin(theta) + old_start.y * cos(theta) };
 
-                auto new_end = Vector2{
+                Vector2 new_end = {
                     old_end.x * cos(theta) - old_end.y * sin(theta),
                     old_end.x * sin(theta) + old_end.y * cos(theta) };
 
