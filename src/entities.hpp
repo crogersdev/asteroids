@@ -1,7 +1,5 @@
 #pragma once
 
-#include "components.hpp"
-
 #include <any>
 #include <cstdint>
 #include <typeindex>
@@ -16,11 +14,13 @@ class Registry {
 private:
     Entity next_id = 0;
     std::unordered_map<std::type_index, std::any> pools;
+    std::unordered_map<Entity, std::vector<std::type_index>> membership_index;
+    std::unordered_map<std::type_index, std::function<void(Entity)>> erasers;
 
     /*
      * Top level entry is:
      * unordered_map<ComponentType, unordered_map<EntityID, ComponentType> >
-     * where both CompnentTypes are the same.  
+     * where both CompnentTypes are the same.
      * e.g.
      * "Here's all the entities that have Transform!"
      *
@@ -30,8 +30,7 @@ private:
      *     ...
      *   }
      * Velocity -> {
-     *     entity_id::wq:wqa
-     *     0 -> { dir{0, 0},  speed 10 } // Velocity of entity 0
+     *     entity_id: 0 -> { dir{0, 0},  speed 10 } // Velocity of entity 0
      *     ...
      * }
      * PlayerInput -> {
@@ -48,12 +47,59 @@ private:
         }
         return std::any_cast<std::unordered_map<Entity, T>&>(pools[key]);
     }
+
 public:
     Entity create() { return next_id++; }
+
+    void destroy(Entity e) {
+        for (auto component : membership_index[e]) {
+            erasers[component](e);
+        }
+        membership_index.erase(e);
+    }
 
     template<typename T>
     void add(Entity e, T component) {
         get_pool<T>()[e] = std::move(component);
+
+        auto component_type = std::type_index(typeid(T));
+        membership_index[e].push_back(component_type);
+
+        // note: why do we create the erase function at add time:
+        //       if we tried to just do pools[component_type].erase(),
+        //       we'd have to do a std::any_cast jus tlike we do when we
+        //       execute get_pool.
+        //
+        //       recall:
+        //       pools is a map(component type -> map(entity_id -> component))
+        //       so if you want to remove an entity, you have to do it across
+        //       many pools.
+        //
+        //       so we keep track of which entities have which components in
+        //       membership_index.
+        //
+        //       we could just brute force lookup every entity in every pool
+        //       and delete the entity_id we care about if membership_index
+        //       only held onto a human type of an entity.
+        //
+        //       but we don't need to.
+        //
+        //       we can use membership_index as map(entity_id -> list of components)
+        //       and then iterate through erasers which is
+        //       map(component type -> erase function(entity))
+        //       which let's us NOT iterate through all components in the registry
+        //       looking for our entity and instead just know ahead of time
+        //       which component types our entity belongs to
+        //       then erase our entity from every component pool it belongs to.
+        //
+        //       and we need to do it here, where we can std::any_cast to 
+        //       component type from T.
+        //
+
+        erasers[component_type] = std::function<void(Entity)>([this, component_type](Entity e) {
+            auto& pool = std::any_cast<std::unordered_map<Entity, T>&>(pools[component_type]);
+            pool.erase(e);
+        });
     }
 
     template<typename T>

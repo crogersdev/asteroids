@@ -1,8 +1,9 @@
 #pragma once
 
+#include "components.hpp"
 #include "entities.hpp"
 
-#include <iostream>
+#include <cmath>
 #include <random>
 
 #include <raylib.h>
@@ -18,25 +19,32 @@ inline void game_init(Registry& registry) {
     float y = GetScreenHeight();
     Vector2 center = { x / 2.f, y / 2.f };
 
-    float player_thrust_speed = 125.f;
-    float player_turn_speed = .05f;
+    float player_turn_speed = .08f;
     float player_shoot_rate = 1.5f;
+    float player_max_speed = 225.f;
+    float player_acceleration = 500.f;
+    float player_drag_coeff = .99;
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
     registry.add(player, TimesFired{ 0 });
-    registry.add(player, Transform{ { center.x, center.y }, player_turn_speed });
-    registry.add(player, Velocity{ { 0.f, -1.f }, 125.f });
+    registry.add(player, Transform{
+        { center.x, center.y },
+        { 0.f, 0.f },
+        player_turn_speed,
+        player_drag_coeff });
     registry.add(player, WeaponCooldown{ player_shoot_rate });
     registry.add(player, PolygonShip{{
         Line{{ -10.f,  +4.f }, {   0.f, -14.f }, RED },
         Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE },
         Line{{ +10.f,  +4.f }, {   0.f,   0.f }, GREEN },
-        Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW },
-    }});
+        Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW }}, 
+        Vector2{ 0.f, -1.f },
+        player_max_speed,
+        player_acceleration });
 
-    constexpr int initialAsteroids = 5;
-    std::array<Entity, initialAsteroids> asteroids;
+    constexpr int INITIAL_ASTEROIDS = 5;
+    std::array<Entity, INITIAL_ASTEROIDS> asteroids;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -46,7 +54,10 @@ inline void game_init(Registry& registry) {
     std::uniform_int_distribution<int> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
 
-    for (int i = 0; i < initialAsteroids; ++i) {
+    float    asteroid_speed = 100.f;
+    uint32_t asteroid_size  = 4;
+
+    for (int i = 0; i < INITIAL_ASTEROIDS; ++i) {
         float a_x = dist_x(gen);
         if (a_x > one_third.x) a_x += one_third.x;
 
@@ -54,19 +65,17 @@ inline void game_init(Registry& registry) {
         if (a_y > one_third.y) a_y += one_third.y;
 
         asteroids[i] = registry.create();
-        registry.add(asteroids[i], Transform{ { a_x, a_y }, 0.f });
-        registry.add(asteroids[i], Size{ 4 });
+        float theta = dist_theta(gen);
+        float dir_x = cos(theta);
+        float dir_y = sin(theta);
+        registry.add(asteroids[i], Size{ asteroid_size });
+        registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f });
         registry.add(asteroids[i], Asteroid{{
             Line{{ -40.f, +40.f }, { -40.f, -40.f }, RED },
             Line{{ -40.f, -40.f }, { +40.f, -40.f }, RED },
             Line{{ +40.f, -40.f }, { +40.f, +40.f }, RED },
             Line{{ +40.f, +40.f }, { -40.f, +40.f }, RED },
         }});
-
-        float theta = dist_theta(gen);
-        float dir_x = cos(theta);
-        float dir_y = sin(theta);
-        registry.add(asteroids[i], Velocity{ { dir_x, dir_y }, 100.f });
     }
 }
 
@@ -104,12 +113,11 @@ inline void movement_update_system(Registry& registry) {
     auto w = GetScreenWidth();
     auto h = GetScreenHeight();
 
-    for (Entity& e : registry.view<Asteroid, Transform, Velocity>()) {
+    for (Entity& e : registry.view<Asteroid, Transform>()) {
         auto& transform = registry.get<Transform>(e);
-        auto& velocity = registry.get<Velocity>(e);
 
-        Vector2 dt_offset = { velocity.direction.x * velocity.speed * GetFrameTime(),
-                              velocity.direction.y * velocity.speed * GetFrameTime() };
+        Vector2 dt_offset = { transform.velocity.x * GetFrameTime(),
+                              transform.velocity.y * GetFrameTime() };
 
         transform.position.x += dt_offset.x;
         transform.position.y += dt_offset.y;
@@ -128,14 +136,14 @@ inline void movement_update_system(Registry& registry) {
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
 
-    for (Entity& e : registry.view<Transform, Velocity, PlayerInput, PolygonShip>()) {
+    for (Entity& e : registry.view<Transform, PlayerInput, PolygonShip>()) {
         auto& transform = registry.get<Transform>(e);
-        auto& velocity = registry.get<Velocity>(e);
         auto& player = registry.get<PlayerInput>(e);
         auto& ship = registry.get<PolygonShip>(e);
 
+
         if (player.rotate_left || player.rotate_right) {
-            Vector2 new_start = {}, new_end = {};
+            Vector2 new_start = {}, new_end = {}, new_orientation = {};
             float t = transform.rotation_speed;
             if (player.rotate_left) { t *= -1.f; }
 
@@ -150,23 +158,37 @@ inline void movement_update_system(Registry& registry) {
                 ship_edge.end   = new_end;
             }
 
-            Vector2 new_direction = {};
-            new_direction.x = velocity.direction.x * cos(t) - velocity.direction.y * sin(t);
-            new_direction.y = velocity.direction.x * sin(t) + velocity.direction.y * cos(t);
+            new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
+            new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
 
-            velocity.direction = new_direction;
+            ship.orientation = new_orientation;
         }
 
         if (player.thrust) {
-            Vector2 dt_offset = { velocity.direction.x * velocity.speed * GetFrameTime(),
-                                  velocity.direction.y * velocity.speed * GetFrameTime() };
+            transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
+            transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
 
-            transform.position.x += dt_offset.x;
-            transform.position.y += dt_offset.y;
-
-            transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
-            transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
+            auto magnitude = sqrt(pow(transform.velocity.x, 2.f) + pow(transform.velocity.y, 2.f));
+            if (magnitude > ship.max_speed) {
+                auto theta = atan2(transform.velocity.y, transform.velocity.x);
+                transform.velocity.x = cos(theta) * ship.max_speed;
+                transform.velocity.y = sin(theta) * ship.max_speed;
+            }
+        } else {
+            // apply drag
+            transform.velocity.x *= transform.drag;
+            transform.velocity.y *= transform.drag;
         }
+
+        Vector2 dt_offset = { transform.velocity.x * GetFrameTime(),
+                              transform.velocity.y * GetFrameTime() };
+
+
+        transform.position.x += dt_offset.x;
+        transform.position.y += dt_offset.y;
+
+        transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
+        transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
 
         if (player.shoot) {
         }
