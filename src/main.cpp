@@ -1,4 +1,5 @@
-#include "systems.hpp"
+#include "systems/systems.hpp"
+#include "systems/game-init.hpp"
 
 #include <raylib.h>
 
@@ -33,8 +34,9 @@ int main(void) {
 
             player_input_system(registry);
             movement_update_system(registry);
-            clear_player_inputs(registry);
+            weapon_system(registry);
             render_system(registry);
+            clear_player_inputs(registry);
         EndDrawing();
     }
 
