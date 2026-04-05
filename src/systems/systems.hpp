@@ -1,10 +1,10 @@
 #pragma once
 
 #include "../components.hpp"
+#include "../constants.hpp"
 #include "../entities.hpp"
 
 #include <cmath>
-#include <iostream>
 
 #include <raylib.h>
 
@@ -52,14 +52,14 @@ inline void movement_update_system(Registry& registry) {
     }
 
     for (Entity& e : registry.view<Transform, PlayerInput, PolygonShip>()) {
-        auto& transform = registry.get<Transform>(e);
-        auto& player = registry.get<PlayerInput>(e);
+        auto& input = registry.get<PlayerInput>(e);
         auto& ship = registry.get<PolygonShip>(e);
+        auto& player_transform = registry.get<Transform>(e);
 
-        if (player.rotate_left || player.rotate_right) {
+        if (input.rotate_left || input.rotate_right) {
             Vector2 new_start = {}, new_end = {}, new_orientation = {};
-            float t = transform.rotation_speed;
-            if (player.rotate_left) { t *= -1.f; }
+            float t = player_transform.rotation_speed;
+            if (input.rotate_left) { t *= -1.f; }
 
             for (auto& ship_edge : ship.lines) {
                 new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
@@ -78,30 +78,30 @@ inline void movement_update_system(Registry& registry) {
             ship.orientation = new_orientation;
         }
 
-        if (player.thrust) {
-            transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
-            transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
+        if (input.thrust) {
+            player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
+            player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
 
-            auto magnitude = sqrt(pow(transform.velocity.x, 2.f) + pow(transform.velocity.y, 2.f));
+            auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
             if (magnitude > ship.max_speed) {
-                auto theta = atan2(transform.velocity.y, transform.velocity.x);
-                transform.velocity.x = cos(theta) * ship.max_speed;
-                transform.velocity.y = sin(theta) * ship.max_speed;
+                auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
+                player_transform.velocity.x = cos(theta) * ship.max_speed;
+                player_transform.velocity.y = sin(theta) * ship.max_speed;
             }
         } else {
             // apply drag
-            transform.velocity.x *= transform.drag;
-            transform.velocity.y *= transform.drag;
+            player_transform.velocity.x *= player_transform.drag;
+            player_transform.velocity.y *= player_transform.drag;
         }
 
-        Vector2 dt_offset = { transform.velocity.x * GetFrameTime(),
-                              transform.velocity.y * GetFrameTime() };
+        Vector2 dt_offset = { player_transform.velocity.x * GetFrameTime(),
+                              player_transform.velocity.y * GetFrameTime() };
 
-        transform.position.x += dt_offset.x;
-        transform.position.y += dt_offset.y;
+        player_transform.position.x += dt_offset.x;
+        player_transform.position.y += dt_offset.y;
 
-        transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
-        transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
+        player_transform.position.x = fmod(fmod(player_transform.position.x, w) + w, w);
+        player_transform.position.y = fmod(fmod(player_transform.position.y, h) + h, h);
     }
 }
 
@@ -109,11 +109,10 @@ inline void player_input_system(Registry& registry) {
     for (Entity& player_id : registry.view<PlayerInput>()) {
         auto& player = registry.get<PlayerInput>(player_id);
 
-        if (IsKeyDown(KEY_W))     { player.thrust = true; }
-        if (IsKeyDown(KEY_A))     { player.rotate_left = true; }
-        if (IsKeyDown(KEY_S))     { }
-        if (IsKeyDown(KEY_D))     { player.rotate_right = true; }
-
+        if (IsKeyDown(KEY_W))        { player.thrust = true; }
+        if (IsKeyDown(KEY_A))        { player.rotate_left = true; }
+        if (IsKeyDown(KEY_S))        { }
+        if (IsKeyDown(KEY_D))        { player.rotate_right = true; }
         if (IsKeyPressed(KEY_SPACE)) { player.shoot = true; }
     }
 }
@@ -166,40 +165,60 @@ inline void render_system(Registry& registry) {
 }
 
 inline void weapon_system(Registry& registry) {
-    for (Entity& e : registry.view<PlayerInput, PolygonShip, TimesFired, Transform, WeaponCooldown>()) {
-
-        auto& player = registry.get<PlayerInput>(e);
-        auto& times_fired = registry.get<TimesFired>(e);
+    for (Entity& e : registry.view<PlayerInput, PolygonShip, Transform, Weapon>()) {
+        auto& input = registry.get<PlayerInput>(e);
+        auto& ship = registry.get<PolygonShip>(e);
         auto& player_transform = registry.get<Transform>(e);
+        auto& weapon = registry.get<Weapon>(e);
 
-        if (times_fired.count == times_fired.max) {
+        auto num_bullets = registry.view<Bullet>().size();
 
-        }
+        if (input.shoot &&
+            weapon.freq_timer <= 0.f &&
+            weapon.cooldown_timer <= 0.f &&
+            num_bullets < weapon.max_ammo) {
+            input.shoot = false;
+            weapon.freq_timer = weapon.freq;
 
-        if (player.shoot && times_fired.count < times_fired.max) {
-            player.shoot = false;
-            times_fired.count++;
-
-            auto& ship = registry.get<PolygonShip>(e);
             auto ship_theta = atan2(ship.orientation.y, ship.orientation.x);
-
             float bullet_speed = 500.f;
-            Vector2 bullet_start = Vector2 { cos(ship_theta) * 15.f, sin(ship_theta) * 15.f };
-            Vector2 bullet_end = Vector2{ cos(ship_theta) * 20.f, sin(ship_theta) * 20.f };
+            Vector2 bullet_start = Vector2{ cos(ship_theta) * 15.f, sin(ship_theta) * 15.f };
+            Vector2 bullet_end   = Vector2{ cos(ship_theta) * 20.f, sin(ship_theta) * 20.f };
 
             Entity bullet = registry.create();
             registry.add(bullet, Bullet{
                 Line{ bullet_start, bullet_end, ORANGE, 2.f },
                 bullet_speed,
-                10.f });
+                0.f,
+                1.f});
             registry.add(bullet, Transform{
                 Vector2{
                     cos(ship_theta) * 15.f + player_transform.position.x,
                     sin(ship_theta) * 15.f + player_transform.position.y },
-                Vector2{ cos(ship_theta) * bullet_speed, sin(ship_theta) * bullet_speed },
+                Vector2{ cos(ship_theta) * bullet_speed + player_transform.velocity.x,
+                         sin(ship_theta) * bullet_speed + player_transform.velocity.y },
                 0.f,
                 1.f });
         }
+
+        if (num_bullets == weapon.max_ammo) { weapon.cooldown_timer = weapon.cooldown; }
+        if (weapon.freq_timer > 0.f) { weapon.freq_timer -= GetFrameTime(); }
+        if (weapon.cooldown_timer > 0.f) { weapon.cooldown_timer -= GetFrameTime(); }
+    }
+
+    std::vector<Entity> dead_bullets;
+    for (Entity& e : registry.view<Bullet>()) {
+        auto& bullet = registry.get<Bullet>(e);
+
+        bullet.lifetime += GetFrameTime();
+
+        if (bullet.lifetime >= bullet.max_lifetime) {
+            dead_bullets.push_back(e);
+        }
+    }
+
+    for (auto& b : dead_bullets) {
+        registry.destroy(b);
     }
 }
 

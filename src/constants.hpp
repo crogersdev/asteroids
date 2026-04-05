@@ -44,7 +44,4 @@ const Color SILVER         = Color{ 192, 192, 192, 255 };
 const Color IVORY          = Color{ 255, 255, 240, 255 };
 const Color SMOKE          = Color{ 245, 245, 245, 255 };
 
-// Game constants
-const float PLAYER_ROTATION_SPEED = PI / 120.f;
-
 }
