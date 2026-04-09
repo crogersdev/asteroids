@@ -26,9 +26,9 @@ inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color
     std::vector<Vector2> asteroid_coords;
     for (int side = 0; side < sides; side++) {
         radius_wobble = radius_tolerance(gen);
-        if (radius_wobble == 1) { actual_radius += actual_radius * .15; }
-        if (radius_wobble == 2) { actual_radius -= actual_radius * .2; }
-        if (radius_wobble == 3) { actual_radius -= actual_radius * .5; }
+        if (radius_wobble == 1) { actual_radius += actual_radius * .1f; }
+        if (radius_wobble == 2) { actual_radius -= actual_radius * .2f; }
+        if (radius_wobble == 3) { actual_radius -= actual_radius * .3f; }
         theta += (2.f*PI / sides);
         asteroid_coords.push_back({ cos(theta) * actual_radius, sin(theta) * actual_radius });
         actual_radius = size * radius;

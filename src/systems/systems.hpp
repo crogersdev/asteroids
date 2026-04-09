@@ -25,21 +25,23 @@ inline void collision_system(Registry& registry) {
     std::vector<Entity> dead_asteroids;
     std::vector<Entity> dead_bullets;
 
+    // TODO: If you're going to make bullets long lines, you'll need
+    // to track collision through leading edge or possibly all points along the line
+    // in order to preserve things like an asteroid crossing that line
     for (Entity& bullet : registry.view<Bullet, Transform>()) {
         auto& bullet_transform = registry.get<Transform>(bullet);
-
+        
         for (Entity& asteroid : registry.view<Asteroid, Size, Transform>()) {
             auto& asteroid_transform = registry.get<Transform>(asteroid);
             auto& asteroid_size = registry.get<Size>(asteroid);
 
+            auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
 
             auto bullet_distance_to_asteroid =
                 pow(bullet_transform.position.x - asteroid_transform.position.x, 2) +
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
 
-            std::cout << bullet_distance_to_asteroid << "\n";
-
-            if (bullet_distance_to_asteroid <= pow(asteroid_size.radius * asteroid_size.size, 2)) {
+            if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
                 dead_asteroids.push_back(asteroid);
                 dead_bullets.push_back(bullet);
             }
@@ -216,21 +218,26 @@ inline void weapon_system(Registry& registry) {
 
             auto ship_theta = atan2(ship.orientation.y, ship.orientation.x);
             float bullet_speed = 500.f;
-            Vector2 bullet_start = Vector2{ cos(ship_theta) * 15.f, sin(ship_theta) * 15.f };
-            Vector2 bullet_end   = Vector2{ cos(ship_theta) * 20.f, sin(ship_theta) * 20.f };
+            float bullet_offset_from_ship = 15.f;
+            float bullet_length = 5.5f;
+            Vector2 bullet_start = Vector2{ 0.f, 0.f };
+            Vector2 bullet_end = Vector2{
+                cos(ship_theta) * bullet_length,
+                sin(ship_theta) * bullet_length };
 
             Entity bullet = registry.create();
             registry.add(bullet, Bullet{
-                Line{ bullet_start, bullet_end, ORANGE, 2.f },
+                Line{ bullet_start, bullet_end, ORANGE, 2.5f },
                 bullet_speed,
                 0.f,
                 1.f});
             registry.add(bullet, Transform{
                 Vector2{
-                    cos(ship_theta) * 15.f + player_transform.position.x,
-                    sin(ship_theta) * 15.f + player_transform.position.y },
-                Vector2{ cos(ship_theta) * bullet_speed + player_transform.velocity.x,
-                         sin(ship_theta) * bullet_speed + player_transform.velocity.y },
+                    cos(ship_theta) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
+                    sin(ship_theta) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
+                Vector2{
+                    cos(ship_theta) * bullet_speed + player_transform.velocity.x,
+                    sin(ship_theta) * bullet_speed + player_transform.velocity.y },
                 0.f,
                 1.f });
         }
