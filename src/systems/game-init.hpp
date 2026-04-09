@@ -1,5 +1,6 @@
 #pragma once
 
+#include "asteroid-generator.hpp"
 #include "../components.hpp"
 #include "../entities.hpp"
 
@@ -10,7 +11,6 @@
 
 namespace crogersdev {
 
-
 inline void game_init(Registry& registry) {
     float x = GetScreenWidth();
     float y = GetScreenHeight();
@@ -19,7 +19,7 @@ inline void game_init(Registry& registry) {
     float    player_turn_speed = .08f;
     float    player_max_speed = 225.f;
     float    player_acceleration = 500.f;
-    float    player_drag_coeff = .99;
+    float    player_drag_coeff = .995;
     uint32_t player_max_ammo = 6;
 
     Entity player = registry.create();
@@ -53,8 +53,9 @@ inline void game_init(Registry& registry) {
     std::uniform_int_distribution<uint32_t> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
 
-    float    asteroid_speed = 100.f;
-    uint32_t asteroid_size  = 4;
+    float    asteroid_radius = 10.f;
+    uint32_t asteroid_speed  = 125;
+    uint32_t asteroid_size   = 4;
 
     for (uint8_t i = 0; i < INITIAL_ASTEROIDS; ++i) {
         float a_x = dist_x(gen);
@@ -67,14 +68,9 @@ inline void game_init(Registry& registry) {
         float theta = dist_theta(gen);
         float dir_x = cos(theta);
         float dir_y = sin(theta);
-        registry.add(asteroids[i], Size{ asteroid_size });
+        registry.add(asteroids[i], Size{ asteroid_radius, asteroid_size });
         registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f });
-        registry.add(asteroids[i], Asteroid{{
-            Line{{ -40.f, +40.f }, { -40.f, -40.f }, RED, 1.25f },
-            Line{{ -40.f, -40.f }, { +40.f, -40.f }, RED, 1.25f },
-            Line{{ +40.f, -40.f }, { +40.f, +40.f }, RED, 1.25f },
-            Line{{ +40.f, +40.f }, { -40.f, +40.f }, RED, 1.25f }
-        }});
+        registry.add(asteroids[i], Asteroid{ generate_asteroid(4, RED, 1.25f) });
     }
 }
 

@@ -20,6 +20,14 @@ inline void clear_player_inputs(Registry& registry) {
     }
 }
 
+inline void collision_system(Registry& registry) {
+    for (Entity& bullet : registry.view<Bullet, Transform>()) {
+        for (Entity& asteroid: registry.view<Asteroid, Transform>()) {
+
+        }
+    }
+}
+
 inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
