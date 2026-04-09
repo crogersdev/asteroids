@@ -11,9 +11,8 @@ struct Asteroid       { std::vector<Line> lines; };
 struct Bullet         { Line bullet; float speed; float lifetime; float max_lifetime; };
 struct PlayerInput    { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip    { std::array<Line, 4> lines; Vector2 orientation; float max_speed, acceleration; };
-struct Size           { float radius; uint32_t size; };
+struct Size           { uint32_t radius, size; };
 struct Transform      { Vector2 position; Vector2 velocity; float rotation_speed; float drag; };
 struct Weapon         { uint32_t max_ammo; float freq_timer, freq, cooldown_timer, cooldown; };
 
 }
-

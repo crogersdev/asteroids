@@ -12,26 +12,26 @@
 
 namespace crogersdev {
 
-inline std::vector<Line> generate_asteroid(uint32_t size, Color color, float thickness) {
+inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color color, float thickness) {
     std::random_device rd;
     std::mt19937 gen(rd());
 
     std::uniform_int_distribution<uint32_t> sides_generator(11, 23);
     std::discrete_distribution<uint32_t> radius_tolerance({ 65, 20, 10, 5 });
     uint32_t sides = sides_generator(gen);
-    uint32_t radius = size * 12;
+    uint32_t actual_radius = radius * size;
 
     float theta = 0.f;
     uint32_t radius_wobble = 0;
     std::vector<Vector2> asteroid_coords;
     for (int side = 0; side < sides; side++) {
         radius_wobble = radius_tolerance(gen);
-        if (radius_wobble == 1) { radius += radius * .15; }
-        if (radius_wobble == 2) { radius -= radius * .2; }
-        if (radius_wobble == 3) { radius -= radius * .5; }
+        if (radius_wobble == 1) { actual_radius += actual_radius * .15; }
+        if (radius_wobble == 2) { actual_radius -= actual_radius * .2; }
+        if (radius_wobble == 3) { actual_radius -= actual_radius * .5; }
         theta += (2.f*PI / sides);
-        asteroid_coords.push_back({ cos(theta) * radius, sin(theta) * radius });
-        radius = size * 10;
+        asteroid_coords.push_back({ cos(theta) * actual_radius, sin(theta) * actual_radius });
+        actual_radius = size * radius;
     }
     std::vector<Line> asteroid_shape;
     asteroid_shape.push_back(Line{ asteroid_coords.at(0), asteroid_coords.at(1), color, thickness });

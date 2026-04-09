@@ -5,6 +5,7 @@
 #include "../entities.hpp"
 
 #include <cmath>
+#include <iostream>
 
 #include <raylib.h>
 
@@ -21,10 +22,35 @@ inline void clear_player_inputs(Registry& registry) {
 }
 
 inline void collision_system(Registry& registry) {
-    for (Entity& bullet : registry.view<Bullet, Transform>()) {
-        for (Entity& asteroid: registry.view<Asteroid, Transform>()) {
+    std::vector<Entity> dead_asteroids;
+    std::vector<Entity> dead_bullets;
 
+    for (Entity& bullet : registry.view<Bullet, Transform>()) {
+        auto& bullet_transform = registry.get<Transform>(bullet);
+
+        for (Entity& asteroid : registry.view<Asteroid, Size, Transform>()) {
+            auto& asteroid_transform = registry.get<Transform>(asteroid);
+            auto& asteroid_size = registry.get<Size>(asteroid);
+
+
+            auto bullet_distance_to_asteroid =
+                pow(bullet_transform.position.x - asteroid_transform.position.x, 2) +
+                pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
+
+            std::cout << bullet_distance_to_asteroid << "\n";
+
+            if (bullet_distance_to_asteroid <= pow(asteroid_size.radius * asteroid_size.size, 2)) {
+                dead_asteroids.push_back(asteroid);
+                dead_bullets.push_back(bullet);
+            }
         }
+    }
+
+    for (auto& b : dead_bullets) {
+        registry.destroy(b);
+    }
+    for (auto& a : dead_asteroids) {
+        registry.destroy(a);
     }
 }
 

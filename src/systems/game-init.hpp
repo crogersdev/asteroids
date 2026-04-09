@@ -53,8 +53,8 @@ inline void game_init(Registry& registry) {
     std::uniform_int_distribution<uint32_t> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
 
-    float    asteroid_radius = 10.f;
     uint32_t asteroid_speed  = 125;
+    uint32_t asteroid_radius = 12;
     uint32_t asteroid_size   = 4;
 
     for (uint8_t i = 0; i < INITIAL_ASTEROIDS; ++i) {
@@ -70,7 +70,7 @@ inline void game_init(Registry& registry) {
         float dir_y = sin(theta);
         registry.add(asteroids[i], Size{ asteroid_radius, asteroid_size });
         registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f });
-        registry.add(asteroids[i], Asteroid{ generate_asteroid(4, RED, 1.25f) });
+        registry.add(asteroids[i], Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
     }
 }
 
