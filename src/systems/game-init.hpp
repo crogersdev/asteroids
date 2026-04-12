@@ -17,10 +17,11 @@ inline void game_init(Registry& registry) {
     Vector2 center = { x / 2.f, y / 2.f };
 
     float    player_turn_speed = .08f;
-    float    player_max_speed = 225.f;
-    float    player_acceleration = 500.f;
+    float    player_max_speed = 425.f;
+    float    player_acceleration = 750.f;
     float    player_drag_coeff = .995;
-    uint32_t player_max_ammo = 6;
+    uint32_t player_max_ammo = 3;
+    float    player_cooldown_period = 1.5f;
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
@@ -32,7 +33,8 @@ inline void game_init(Registry& registry) {
     registry.add(player, Weapon{ 
         player_max_ammo,
         0.f,
-        0.f });
+        player_cooldown_period,
+        true });
     registry.add(player, PolygonShip{{
         Line{{ -10.f,  +4.f }, {   0.f, -14.f }, RED, 1.5f },
         Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE, 1.5f },
@@ -69,7 +71,7 @@ inline void game_init(Registry& registry) {
         float dir_x = cos(theta);
         float dir_y = sin(theta);
         registry.add(asteroids[i], Size{ asteroid_radius, asteroid_size });
-        registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f });
+        registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f, 1.f });
         registry.add(asteroids[i], Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
     }
 }

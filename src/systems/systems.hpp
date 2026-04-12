@@ -1,11 +1,13 @@
 #pragma once
 
+#include "asteroid-generator.hpp"
 #include "../components.hpp"
 #include "../constants.hpp"
 #include "../entities.hpp"
 
 #include <cmath>
 #include <iostream>
+#include <random>
 
 #include <raylib.h>
 
@@ -24,13 +26,25 @@ inline void clear_player_inputs(Registry& registry) {
 inline void collision_system(Registry& registry) {
     std::vector<Entity> dead_asteroids;
     std::vector<Entity> dead_bullets;
+    std::vector<Entity> dead_particles;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<float> speed(250.f, 50.f);
+    std::normal_distribution<float> radius(3.5f, .5f);
+    std::normal_distribution<float> lifespan(.1f, .75f);
+    std::normal_distribution<float> breakoff_speed(1.f, .66f);
+    std::uniform_real_distribution<float> angle(0.f, 2.f * PI);
+
+    float particle_age = 0.f;
+    float particle_drag = 0.999f;
 
     // TODO: If you're going to make bullets long lines, you'll need
     // to track collision through leading edge or possibly all points along the line
     // in order to preserve things like an asteroid crossing that line
     for (Entity& bullet : registry.view<Bullet, Transform>()) {
         auto& bullet_transform = registry.get<Transform>(bullet);
-        
+
         for (Entity& asteroid : registry.view<Asteroid, Size, Transform>()) {
             auto& asteroid_transform = registry.get<Transform>(asteroid);
             auto& asteroid_size = registry.get<Size>(asteroid);
@@ -42,9 +56,55 @@ inline void collision_system(Registry& registry) {
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
 
             if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
+                for (int p = 0; p < 50; p++) {
+                    auto particle_theta = angle(gen);
+                    auto particle_speed = speed(gen);
+                    auto particle_radius = radius(gen);
+                    auto particle_lifespan = lifespan(gen);
+
+                    Entity particle = registry.create();
+                    registry.add(particle, Particle{
+                        particle_age,
+                        particle_lifespan,
+                        particle_radius,
+                        WHITE });
+                    registry.add(particle, Transform{
+                        asteroid_transform.position,
+                        { cos(particle_theta) * particle_speed, sin(particle_theta) * particle_speed },
+                        0.f,
+                        particle_drag });
+                }
+
+                if (asteroid_size.size > 1) {
+                    auto parent_speed = sqrt(pow(asteroid_transform.velocity.x, 2.f) + pow(asteroid_transform.velocity.y, 2.f));
+                    int child_asteroids = 2;
+                    for (int i = 0; i < child_asteroids; i++) {
+                        Entity new_asteroid = registry.create();
+                        auto new_theta = angle(gen);
+                        auto new_speed = breakoff_speed(gen) * parent_speed;
+                        registry.add(new_asteroid, Size{ asteroid_size.radius, asteroid_size.size-1 });
+                        registry.add(new_asteroid, Transform{
+                            asteroid_transform.position,
+                            { cos(new_theta) * new_speed, sin(new_theta) * new_speed },
+                            0.f,
+                            1.f });
+                        registry.add(new_asteroid, Asteroid{ generate_asteroid(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
+                    }
+                }
+
                 dead_asteroids.push_back(asteroid);
                 dead_bullets.push_back(bullet);
             }
+        }
+    }
+
+    for (Entity& particle : registry.view<Particle>()) {
+        auto& particle_info = registry.get<Particle>(particle);
+
+        particle_info.age += GetFrameTime();
+
+        if (particle_info.age >= particle_info.lifespan) {
+            dead_particles.push_back(particle);
         }
     }
 
@@ -53,6 +113,9 @@ inline void collision_system(Registry& registry) {
     }
     for (auto& a : dead_asteroids) {
         registry.destroy(a);
+    }
+    for (auto& p : dead_particles) {
+        registry.destroy(p);
     }
 }
 
@@ -63,29 +126,6 @@ inline void draw_debug_info() {
 inline void movement_update_system(Registry& registry) {
     auto w = GetScreenWidth();
     auto h = GetScreenHeight();
-
-    for (Entity& e : registry.view<Transform>()) {
-        auto& transform = registry.get<Transform>(e);
-
-        Vector2 dt_offset = { transform.velocity.x * GetFrameTime(),
-                              transform.velocity.y * GetFrameTime() };
-
-        transform.position.x += dt_offset.x;
-        transform.position.y += dt_offset.y;
-
-        // explain: if this is confusing, it's because we're using fmod to 
-        //          screen wrap but in a way that respects negative numbers
-        //          e.g.
-        //          x = -10, screen_width = 800
-        //          fmod(-10, 800) = -10
-        //          -10 + 800 = 790
-        //          fmod(790, 800) = 790
-        //          ^^^ if asteroid goes off left edge by 10.  rework with
-        //          positive 10 and you'll see you correctly get 10 with the same
-        //          code
-        transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
-        transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
-    }
 
     for (Entity& e : registry.view<Transform, PlayerInput, PolygonShip>()) {
         auto& input = registry.get<PlayerInput>(e);
@@ -124,21 +164,32 @@ inline void movement_update_system(Registry& registry) {
                 player_transform.velocity.x = cos(theta) * ship.max_speed;
                 player_transform.velocity.y = sin(theta) * ship.max_speed;
             }
-        } else {
-            // apply drag
-            player_transform.velocity.x *= player_transform.drag;
-            player_transform.velocity.y *= player_transform.drag;
         }
-
-        Vector2 dt_offset = { player_transform.velocity.x * GetFrameTime(),
-                              player_transform.velocity.y * GetFrameTime() };
-
-        player_transform.position.x += dt_offset.x;
-        player_transform.position.y += dt_offset.y;
-
-        player_transform.position.x = fmod(fmod(player_transform.position.x, w) + w, w);
-        player_transform.position.y = fmod(fmod(player_transform.position.y, h) + h, h);
     }
+
+    for (Entity& e : registry.view<Transform>()) {
+        auto& transform = registry.get<Transform>(e);
+
+        Vector2 dt_offset = { transform.velocity.x * transform.drag * GetFrameTime(),
+                              transform.velocity.y * transform.drag * GetFrameTime() };
+
+        transform.position.x += dt_offset.x;
+        transform.position.y += dt_offset.y;
+
+        // explain: if this is confusing, it's because we're using fmod to 
+        //          screen wrap but in a way that respects negative numbers
+        //          e.g.
+        //          x = -10, screen_width = 800
+        //          fmod(-10, 800) = -10
+        //          -10 + 800 = 790
+        //          fmod(790, 800) = 790
+        //          ^^^ if asteroid goes off left edge by 10.  rework with
+        //          positive 10 and you'll see you correctly get 10 with the same
+        //          code
+        transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
+        transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
+    }
+
 }
 
 inline void player_input_system(Registry& registry) {
@@ -198,29 +249,38 @@ inline void render_system(Registry& registry) {
                    bullet.bullet.thickness,
                    bullet.bullet.color );
     }
+
+    for (Entity& e : registry.view<Particle, Transform>()) {
+        auto& particle = registry.get<Particle>(e);
+        auto& particle_transform = registry.get<Transform>(e);
+        Vector2 pos = particle_transform.position;
+
+        DrawCircleGradient(pos.x, pos.y, particle.radius, particle.color, BLACK);
+    }
 }
 
 inline void weapon_system(Registry& registry) {
+    float bullet_speed = 500.f;
+    float bullet_offset_from_ship = 15.f;
+    float bullet_length = 11.f;
+    float bullet_age = 0.f;
+    float bullet_lifespan = .75f;
+    Vector2 bullet_start = Vector2{ 0.f, 0.f };
+
     for (Entity& e : registry.view<PlayerInput, PolygonShip, Transform, Weapon>()) {
         auto& input = registry.get<PlayerInput>(e);
         auto& ship = registry.get<PolygonShip>(e);
         auto& player_transform = registry.get<Transform>(e);
         auto& weapon = registry.get<Weapon>(e);
 
-        auto num_bullets = registry.view<Bullet>().size();
+        if (input.shoot && weapon.ready) {
 
-        if (input.shoot &&
-            weapon.freq_timer <= 0.f &&
-            weapon.cooldown_timer <= 0.f &&
-            num_bullets < weapon.max_ammo) {
+            weapon.cooldown_timer += (1.f / weapon.max_ammo) * weapon.cooldown;
+            if (weapon.cooldown_timer >= weapon.cooldown) { weapon.ready = false; }
+
             input.shoot = false;
-            weapon.freq_timer = weapon.freq;
 
             auto ship_theta = atan2(ship.orientation.y, ship.orientation.x);
-            float bullet_speed = 500.f;
-            float bullet_offset_from_ship = 15.f;
-            float bullet_length = 5.5f;
-            Vector2 bullet_start = Vector2{ 0.f, 0.f };
             Vector2 bullet_end = Vector2{
                 cos(ship_theta) * bullet_length,
                 sin(ship_theta) * bullet_length };
@@ -229,8 +289,8 @@ inline void weapon_system(Registry& registry) {
             registry.add(bullet, Bullet{
                 Line{ bullet_start, bullet_end, ORANGE, 2.5f },
                 bullet_speed,
-                0.f,
-                1.f});
+                bullet_age,
+                bullet_lifespan });
             registry.add(bullet, Transform{
                 Vector2{
                     cos(ship_theta) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
@@ -242,18 +302,17 @@ inline void weapon_system(Registry& registry) {
                 1.f });
         }
 
-        if (num_bullets == weapon.max_ammo) { weapon.cooldown_timer = weapon.cooldown; }
-        if (weapon.freq_timer > 0.f) { weapon.freq_timer -= GetFrameTime(); }
-        if (weapon.cooldown_timer > 0.f) { weapon.cooldown_timer -= GetFrameTime(); }
+        if (weapon.cooldown_timer >  0.f) { weapon.cooldown_timer -= GetFrameTime(); }
+        if (weapon.cooldown_timer <= 0.f) { weapon.ready = true; }
     }
 
     std::vector<Entity> dead_bullets;
     for (Entity& e : registry.view<Bullet>()) {
         auto& bullet = registry.get<Bullet>(e);
 
-        bullet.lifetime += GetFrameTime();
+        bullet.age += GetFrameTime();
 
-        if (bullet.lifetime >= bullet.max_lifetime) {
+        if (bullet.age >= bullet.lifespan) {
             dead_bullets.push_back(e);
         }
     }

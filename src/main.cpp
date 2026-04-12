@@ -38,6 +38,7 @@ int main(void) {
             weapon_system(registry);
             render_system(registry);
             clear_player_inputs(registry);
+            DrawFPS(10, 10);
         EndDrawing();
     }
 
