@@ -204,6 +204,9 @@ inline void player_input_system(Registry& registry) {
     }
 }
 
+inline void sound_system(Registry& registry) {
+}
+
 inline void render_system(Registry& registry) {
     // note: raylib's approach is to have global access to raylib managed
     //       resources.  in this case, that's the window to which we render

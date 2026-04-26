@@ -19,3 +19,4 @@ build/
 
 .claude
 package*json
+**/*DS_Store

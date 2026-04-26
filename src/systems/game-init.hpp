@@ -75,6 +75,8 @@ inline void game_init(Registry& registry) {
         registry.add(asteroids[i], Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
     }
 
+    Entity explosion_sound = registry.create();
+    registry.add(explosion_sound, Sound{ });
 
 
 }
