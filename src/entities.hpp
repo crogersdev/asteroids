@@ -12,6 +12,22 @@ using Entity = uint16_t;
 
 class Registry {
 private:
+    template <typename ...Ts>
+    struct Exclude {};
+
+    template <typename T>
+    struct is_exclude_tag {
+        static constexpr bool value = false;
+    };
+
+    template <typename ...Ts>
+    struct is_exclude_tag<Exclude<Ts...>> {
+        static constexpr bool value = true;
+    };
+
+    template <typename T>
+    struct excluded_pack;
+
     Entity next_id = 0;
     std::unordered_map<std::type_index, std::any> pools;
     std::unordered_map<Entity, std::vector<std::type_index>> membership_index;
@@ -113,11 +129,27 @@ public:
         return pool.find(e) != pool.end();
     }
 
-    template<typename First, typename... Rest>
+    template <typename ...Ts>
+    struct excluded_pack<Exclude<Ts...>> {
+        static bool none_present(Registry& r, Entity id) {
+            return (!r.has<Ts>(id) && ...);
+        }
+    };
+
+    template <typename T>
+    bool search_with_filter(Entity id) {
+        if constexpr (is_exclude_tag<T>::value) {
+            return excluded_pack<T>::none_present(*this, id);
+        } else {
+            return has<T>(id);
+        }
+    }
+
+    template<typename First, typename ...Rest>
     std::vector<Entity> view() {
         std::vector<Entity> matches = {};
         for (auto& [id, _] : get_pool<First>()) {
-            if ((has<Rest>(id) && ...)) {
+            if ((search_with_filter<Rest>(id) && ...)) {
                 matches.push_back(id);
             }
         }

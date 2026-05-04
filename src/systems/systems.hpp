@@ -299,8 +299,8 @@ inline void weapon_system(Registry& registry) {
                     cos(ship_theta) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
                     sin(ship_theta) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
                 Vector2{
-                    cos(ship_theta) * bullet_speed + player_transform.velocity.x,
-                    sin(ship_theta) * bullet_speed + player_transform.velocity.y },
+                    cos(ship_theta) * bullet_speed,
+                    sin(ship_theta) * bullet_speed },
                 0.f,
                 1.f });
         }
