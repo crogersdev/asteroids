@@ -33,7 +33,8 @@ int main(void) {
             }
 
             player_input_system(registry);
-            collision_system(registry);
+            bullet_collision_system(registry);
+            player_collision_system(registry);
             movement_update_system(registry);
             weapon_system(registry);
             render_system(registry);

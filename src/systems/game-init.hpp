@@ -12,16 +12,16 @@
 namespace crogersdev {
 
 inline void game_init(Registry& registry) {
-    float x = GetScreenWidth();
-    float y = GetScreenHeight();
-    Vector2 center = { x / 2.f, y / 2.f };
+    const float x = GetScreenWidth();
+    const float y = GetScreenHeight();
+    const Vector2 center = { x / 2.f, y / 2.f };
 
-    float    player_turn_speed = .08f;
-    float    player_max_speed = 425.f;
-    float    player_acceleration = 750.f;
-    float    player_drag_coeff = .995;
-    uint32_t player_max_ammo = 999;
-    float    weapon_cooldown_period = 1.5f;
+    const float    player_turn_speed = .08f;
+    const float    player_max_speed = 425.f;
+    const float    player_acceleration = 750.f;
+    const float    player_drag_coeff = .995;
+    const uint32_t player_max_ammo = 999;
+    const float    weapon_cooldown_period = 1.5f;
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
@@ -49,15 +49,15 @@ inline void game_init(Registry& registry) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    Vector2 one_third = { x / 3.f, y / 3.f };
-    Vector2 two_thirds = { 2.f*x / 3.f, 2.f*y / 3.f };
+    const Vector2 one_third = { x / 3.f, y / 3.f };
+    const Vector2 two_thirds = { 2.f*x / 3.f, 2.f*y / 3.f };
     std::uniform_int_distribution<uint32_t> dist_x(0, two_thirds.x);
     std::uniform_int_distribution<uint32_t> dist_y(0, two_thirds.y);
     std::uniform_real_distribution<float> dist_theta(0, 2*PI);
 
-    uint32_t asteroid_speed  = 125;
-    uint32_t asteroid_radius = 12;
-    uint32_t asteroid_size   = 4;
+    const uint32_t asteroid_speed  = 125;
+    const uint32_t asteroid_radius = 12;
+    const uint32_t asteroid_size   = 4;
 
     for (uint8_t i = 0; i < INITIAL_ASTEROIDS; ++i) {
         float a_x = dist_x(gen);
