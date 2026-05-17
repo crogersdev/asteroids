@@ -21,6 +21,7 @@ int main(void) {
 
     Registry registry = Registry();
 
+    registry.game_state = { 5, 0, 1 };
     game_init(registry);
 
     while (!WindowShouldClose()) {

@@ -3,8 +3,6 @@
 #include "../components.hpp"
 
 #include <cmath>
-#include <iomanip>
-#include <iostream>
 #include <random>
 #include <vector>
 

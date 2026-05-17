@@ -22,6 +22,7 @@ inline void game_init(Registry& registry) {
     const float    player_drag_coeff = .995;
     const uint32_t player_max_ammo = 999;
     const float    weapon_cooldown_period = 1.5f;
+    const float    player_invincible_period = 3.f;
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });
@@ -43,9 +44,9 @@ inline void game_init(Registry& registry) {
         Vector2{ 0.f, -1.f },
         player_max_speed,
         player_acceleration });
+    registry.add(player, Invincible{ player_invincible_period });
 
-    constexpr uint32_t INITIAL_ASTEROIDS = 5;
-    std::array<Entity, INITIAL_ASTEROIDS> asteroids;
+    std::vector<Entity> asteroids(registry.game_state.starting_asteroid_count);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -59,25 +60,24 @@ inline void game_init(Registry& registry) {
     const uint32_t asteroid_radius = 12;
     const uint32_t asteroid_size   = 4;
 
-    for (uint8_t i = 0; i < INITIAL_ASTEROIDS; ++i) {
+    for (uint8_t i = 0; i < asteroids.size(); ++i) {
         float a_x = dist_x(gen);
         if (a_x > one_third.x) a_x += one_third.x;
 
         float a_y = dist_y(gen);
         if (a_y > one_third.y) a_y += one_third.y;
 
-        asteroids[i] = registry.create();
+        asteroids.push_back(registry.create());
         float theta = dist_theta(gen);
         float dir_x = cos(theta);
         float dir_y = sin(theta);
-        registry.add(asteroids[i], Size{ asteroid_radius, asteroid_size });
-        registry.add(asteroids[i], Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f, 1.f });
-        registry.add(asteroids[i], Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
+        registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size });
+        registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_speed, dir_y * asteroid_speed }, 0.f, 1.f });
+        registry.add(asteroids.at(i), Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
     }
 
     Entity explosion_sound = registry.create();
     registry.add(explosion_sound, Sound{ });
-
 
 }
 

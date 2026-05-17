@@ -50,7 +50,6 @@ inline void bullet_collision_system(Registry& registry) {
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
 
             auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
-
             auto bullet_distance_to_asteroid =
                 pow(bullet_transform.position.x - asteroid_transform.position.x, 2) +
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
@@ -193,26 +192,51 @@ inline void movement_update_system(Registry& registry) {
 }
 
 inline void player_collision_system(Registry& registry) {
-    for (Entity ship_id : registry.view<PolygonShip, Transform>()) {
+    for (Entity ship_id : registry.view<PolygonShip, Invincible, Transform>()) {
+        const auto& ship = registry.get<PolygonShip>(ship_id);
+        const auto& ship_transform = registry.get<Transform>(ship_id);
+        Vector2 ship_tip = Vector2{
+            ship_transform.position.x + ship.lines[0].end.x,
+            ship_transform.position.y + ship.lines[0].end.y
+        };
+
+        Vector2 ship_left_fin = Vector2{
+            ship_transform.position.x + ship.lines[0].start.x,
+            ship_transform.position.y + ship.lines[0].start.y
+        };
+
+        Vector2 ship_right_fin = Vector2{
+            ship_transform.position.x + ship.lines[1].end.x,
+            ship_transform.position.y + ship.lines[1].end.y
+        };
+        auto ship_invincibility = registry.get<Invincible>(ship_id);
+
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
-            const auto& ship_transform = registry.get<Transform>(ship_id);
-            const auto& ship = registry.get<PolygonShip>(ship_id);
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
+            const auto& asteroid_size = registry.get<Size>(asteroid_id);
 
-            Vector2 ship_tip = Vector2{
-                ship_transform.position.x + ship.lines[0].end.x,
-                ship_transform.position.y + ship.lines[0].end.y
-            };
+            auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
+            auto ship_tip_distance_to_asteroid =
+                pow(ship_tip.x - asteroid_transform.position.x, 2) +
+                pow(ship_tip.y - asteroid_transform.position.y, 2);
 
-            Vector2 ship_left_fin = Vector2{
-                ship_transform.position.x + ship.lines[0].start.x,
-                ship_transform.position.y + ship.lines[0].start.y
-            };
+            auto ship_left_fin_distance_to_asteroid =
+                pow(ship_left_fin.x - asteroid_transform.position.x, 2) +
+                pow(ship_left_fin.y - asteroid_transform.position.y, 2);
 
-            Vector2 ship_right_fin = Vector2{
-                ship_transform.position.x + ship.lines[1].end.x,
-                ship_transform.position.y + ship.lines[1].end.y
-            };
+            auto ship_right_fin_distance_to_asteroid =
+                pow(ship_right_fin.x - asteroid_transform.position.x, 2) +
+                pow(ship_right_fin.y - asteroid_transform.position.y, 2);
+
+            // if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
+            asteroid_collision_radius = pow(asteroid_collision_radius, 2);
+            if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
+                ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
+                ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
+                std::cout << "ya crashed\n";
+                registry.game_state.lives--;
+                ship_invincibility.timer_remaining -= GetFrameTime();
+            }
         }
     }
 }

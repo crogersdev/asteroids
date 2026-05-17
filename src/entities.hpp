@@ -64,6 +64,16 @@ private:
         return std::any_cast<std::unordered_map<Entity, T>&>(pools[key]);
     }
 
+    struct GameState {
+
+        int lives;
+        int score;
+        int starting_asteroid_count;
+
+        GameState()                    : lives(5), score(0), starting_asteroid_count(4) { };
+        GameState(int l, int s, int a) : lives(l), score(s), starting_asteroid_count(a) { };
+    };
+
 public:
     Entity create() { return next_id++; }
 
@@ -155,6 +165,9 @@ public:
         }
         return matches;
     }
+
+    GameState game_state;
+
 };
 
 }
