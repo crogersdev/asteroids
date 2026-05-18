@@ -233,9 +233,8 @@ inline void player_collision_system(Registry& registry) {
             if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
-                std::cout << "ya crashed\n";
                 registry.game_state.lives--;
-                ship_invincibility.timer_remaining -= GetFrameTime();
+                ship_invincibility.time_remaining = ship_invincibility.max;
             }
         }
     }
@@ -262,10 +261,24 @@ inline void render_system(Registry& registry) {
     //       and draw all our stuff.  that means we can just straight up
     //       call DrawLineEx without any problems or concerns
 
-    for (Entity ship_id : registry.view<PolygonShip, Transform>()) {
+    for (Entity ship_id : registry.view<PolygonShip, Invincible, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& transform = registry.get<Transform>(ship_id);
+
         Vector2 pos = transform.position;
+        auto& invincibility_timer = registry.get<Invincible>(ship_id); 
+        if (invincibility_timer.time_remaining > 0.f) {
+            std::cout << "time remaining: " << invincibility_timer.time_remaining << "\n";
+            invincibility_timer.time_remaining -= GetFrameTime();
+            auto it = invincibility_timer;
+            if (it.time_remaining <= it.max && it.time_remaining >= it.max / 2.f) {
+                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(FOREST_GREEN, LIME_GREEN, it.time_remaining)); 
+            } else if (it.time_remaining < it.max / 2.f && it.time_remaining >= it.max / 3.f) {
+                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(LIME_GREEN, YELLOW, it.time_remaining));
+            } else {
+                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(YELLOW, RED, it.time_remaining));
+            }
+        }
 
         Vector2 start = {}, end = {};
         for (const auto& ship_edge : ship.lines) {

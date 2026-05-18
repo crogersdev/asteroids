@@ -44,9 +44,9 @@ inline void game_init(Registry& registry) {
         Vector2{ 0.f, -1.f },
         player_max_speed,
         player_acceleration });
-    registry.add(player, Invincible{ player_invincible_period });
+    registry.add(player, Invincible{ player_invincible_period, 0.f });
 
-    std::vector<Entity> asteroids(registry.game_state.starting_asteroid_count);
+    std::vector<Entity> asteroids;
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -60,7 +60,7 @@ inline void game_init(Registry& registry) {
     const uint32_t asteroid_radius = 12;
     const uint32_t asteroid_size   = 4;
 
-    for (uint8_t i = 0; i < asteroids.size(); ++i) {
+    for (uint8_t i = 0; i < registry.game_state.starting_asteroid_count; ++i) {
         float a_x = dist_x(gen);
         if (a_x > one_third.x) a_x += one_third.x;
 
