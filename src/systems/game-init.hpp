@@ -22,7 +22,7 @@ inline void game_init(Registry& registry) {
     const float    player_drag_coeff = .995;
     const uint32_t player_max_ammo = 999;
     const float    weapon_cooldown_period = 1.5f;
-    const float    player_invincible_period = 3.f;
+    const float    player_invincible_period = 7.f;
 
     Entity player = registry.create();
     registry.add(player, PlayerInput{ false, false, false, false });

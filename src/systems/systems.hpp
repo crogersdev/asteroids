@@ -13,15 +13,9 @@
 
 namespace crogersdev {
 
-inline void clear_player_inputs(Registry& registry) {
-    for (Entity player_id : registry.view<PlayerInput>()) {
-        auto& player = registry.get<PlayerInput>(player_id);
-        player.thrust = false;
-        player.shoot = false;
-        player.rotate_left = false;
-        player.rotate_right = false;
-    }
-}
+// forward declare here to keep alphabetic order but allow usage before it's defined
+template <typename T>
+inline T normalize(T, T, T);
 
 inline void bullet_collision_system(Registry& registry) {
     std::vector<Entity> dead_asteroids;
@@ -118,6 +112,16 @@ inline void bullet_collision_system(Registry& registry) {
     }
 }
 
+inline void clear_player_inputs(Registry& registry) {
+    for (Entity player_id : registry.view<PlayerInput>()) {
+        auto& player = registry.get<PlayerInput>(player_id);
+        player.thrust = false;
+        player.shoot = false;
+        player.rotate_left = false;
+        player.rotate_right = false;
+    }
+}
+
 inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
@@ -209,7 +213,7 @@ inline void player_collision_system(Registry& registry) {
             ship_transform.position.x + ship.lines[1].end.x,
             ship_transform.position.y + ship.lines[1].end.y
         };
-        auto ship_invincibility = registry.get<Invincible>(ship_id);
+        auto& ship_invincibility = registry.get<Invincible>(ship_id);
 
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
@@ -238,6 +242,11 @@ inline void player_collision_system(Registry& registry) {
             }
         }
     }
+}
+
+template <typename T>
+inline T normalize(T x, T min, T max) {
+    return (x - min) / (max - min);
 }
 
 inline void player_input_system(Registry& registry) {
@@ -271,12 +280,12 @@ inline void render_system(Registry& registry) {
             std::cout << "time remaining: " << invincibility_timer.time_remaining << "\n";
             invincibility_timer.time_remaining -= GetFrameTime();
             auto it = invincibility_timer;
-            if (it.time_remaining <= it.max && it.time_remaining >= it.max / 2.f) {
-                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(FOREST_GREEN, LIME_GREEN, it.time_remaining)); 
-            } else if (it.time_remaining < it.max / 2.f && it.time_remaining >= it.max / 3.f) {
-                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(LIME_GREEN, YELLOW, it.time_remaining));
+            if (it.time_remaining <= it.max && it.time_remaining >= it.max * .666f) {
+                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(FOREST_GREEN, LIME_GREEN, 1.f - normalize(it.time_remaining, it.max * .666f, it.max))); 
+            } else if (it.time_remaining < it.max * .666f && it.time_remaining >= it.max * .333f) {
+                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(LIME_GREEN, YELLOW, 1.f - normalize(it.time_remaining, it.max * .333f, it.max * .666f)));
             } else {
-                DrawRing(pos, 12, 15, 0, 2*PI, 36, ColorLerp(YELLOW, RED, it.time_remaining));
+                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(YELLOW, RED, 1.f - normalize(it.time_remaining, 0.f, it.max * .333f)));
             }
         }
 
