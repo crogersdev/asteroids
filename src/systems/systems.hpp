@@ -237,8 +237,13 @@ inline void player_collision_system(Registry& registry) {
             if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
-                registry.game_state.lives--;
-                ship_invincibility.time_remaining = ship_invincibility.max;
+
+                if (ship_invincibility.time_remaining == 0.f) {
+                    registry.game_state.lives--;
+                    ship_invincibility.time_remaining = ship_invincibility.max;
+
+                }
+
             }
         }
     }

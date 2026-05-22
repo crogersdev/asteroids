@@ -16,22 +16,20 @@ inline void game_init(Registry& registry) {
     const float y = GetScreenHeight();
     const Vector2 center = { x / 2.f, y / 2.f };
 
-    const float    player_turn_speed = .08f;
-    const float    player_max_speed = 425.f;
     const float    player_acceleration = 750.f;
-    const float    player_drag_coeff = .995;
+    const float    player_invincible_period = 5.f;
     const uint32_t player_max_ammo = 999;
+    const float    player_max_energy = 99.f;
+    const float    player_max_speed = 425.f;
+    const float    player_turn_speed = .08f;
+    const float    player_drag_coeff = .995;
     const float    weapon_cooldown_period = 1.5f;
-    const float    player_invincible_period = 7.f;
 
     Entity player = registry.create();
+    registry.add(player, Energy{ player_max_energy, player_max_energy });
+    registry.add(player, Invincible{ player_invincible_period, 0.f });
     registry.add(player, PlayerInput{ false, false, false, false });
-    registry.add(player, Transform{
-        { center.x, center.y },
-        { 0.f, 0.f },
-        player_turn_speed,
-        player_drag_coeff });
-    registry.add(player, Weapon{
+        registry.add(player, Weapon{
         player_max_ammo,
         0.f,
         weapon_cooldown_period,
@@ -44,7 +42,11 @@ inline void game_init(Registry& registry) {
         Vector2{ 0.f, -1.f },
         player_max_speed,
         player_acceleration });
-    registry.add(player, Invincible{ player_invincible_period, 0.f });
+    registry.add(player, Transform{
+        { center.x, center.y },
+        { 0.f, 0.f },
+        player_turn_speed,
+        player_drag_coeff });
 
     std::vector<Entity> asteroids;
 
