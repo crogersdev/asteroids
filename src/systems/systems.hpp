@@ -3,19 +3,15 @@
 #include "asteroid-generator.hpp"
 #include "../components.hpp"
 #include "../constants.hpp"
+#include "../helpers.hpp"
 #include "../entities.hpp"
 
 #include <cmath>
 #include <iostream>
-#include <random>
 
 #include <raylib.h>
 
 namespace crogersdev {
-
-// forward declare here to keep alphabetic order but allow usage before it's defined
-template <typename T>
-inline T normalize(T, T, T);
 
 inline void bullet_collision_system(Registry& registry) {
     std::vector<Entity> dead_asteroids;
@@ -50,10 +46,10 @@ inline void bullet_collision_system(Registry& registry) {
 
             if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
                 for (int p = 0; p < 50; p++) {
-                    auto particle_theta = angle(gen);
-                    auto particle_speed = speed(gen);
-                    auto particle_radius = radius(gen);
-                    auto particle_lifespan = lifespan(gen);
+                    auto particle_theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
+                    auto particle_speed = my_rng(250.f, 50.f, Dist::Normal);
+                    auto particle_radius = my_rng(3.5f, .5f, Dist::Normal);
+                    auto particle_lifespan = my_rng(.1f, .75f, Dist::Normal);
 
                     Entity particle = registry.create();
                     registry.add(particle, Particle{
@@ -73,8 +69,8 @@ inline void bullet_collision_system(Registry& registry) {
                     int child_asteroids = 2;
                     for (int i = 0; i < child_asteroids; i++) {
                         Entity new_asteroid = registry.create();
-                        auto new_theta = angle(gen);
-                        auto new_speed = breakoff_speed(gen) * parent_speed;
+                        auto new_theta = my_rng(0.f, 2.f * PI, Dist::Uniform); // angle(gen);
+                        auto new_speed = my_rng(1.f, 1.f, Dist::Normal) * parent_speed;
                         registry.add(new_asteroid, Size{ asteroid_size.radius, asteroid_size.size-1 });
                         registry.add(new_asteroid, Transform{
                             asteroid_transform.position,
@@ -247,11 +243,6 @@ inline void player_collision_system(Registry& registry) {
             }
         }
     }
-}
-
-template <typename T>
-inline T normalize(T x, T min, T max) {
-    return (x - min) / (max - min);
 }
 
 inline void player_input_system(Registry& registry) {
