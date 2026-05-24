@@ -3,11 +3,16 @@
 #include <random>
 #include <type_traits>
 
-enum class Dist { Uniform, Normal };
+enum class Dist { Normal, Uniform };
+
+inline std::mt19937& get_generator() {
+    thread_local std::mt19937 gen{ std::random_device{}() };
+    return gen;
+}
 
 template <typename T>
 inline T my_rng(T a, T b, Dist type) {
-    thread_local std::mt19937 gen{ std::random_device{}() };
+    auto& gen = get_generator();
 
     if (type == Dist::Uniform) {
         if constexpr (std::is_floating_point_v<T>) { return std::uniform_real_distribution<T>(a, b)(gen); }

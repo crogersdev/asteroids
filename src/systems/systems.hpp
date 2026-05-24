@@ -1,10 +1,11 @@
 #pragma once
 
 #include "asteroid-generator.hpp"
+#include "../constants.hpp"
 #include "../components.hpp"
 #include "../constants.hpp"
-#include "../helpers.hpp"
 #include "../entities.hpp"
+#include "../helpers.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -17,17 +18,6 @@ inline void bullet_collision_system(Registry& registry) {
     std::vector<Entity> dead_asteroids;
     std::vector<Entity> dead_bullets;
     std::vector<Entity> dead_particles;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<float> speed(250.f, 50.f);
-    std::normal_distribution<float> radius(3.5f, .5f);
-    std::normal_distribution<float> lifespan(.1f, .75f);
-    std::normal_distribution<float> breakoff_speed(1.f, .66f);
-    std::uniform_real_distribution<float> angle(0.f, 2.f * PI);
-
-    const float particle_age = 0.f;
-    const float particle_drag = 0.999f;
 
     // TODO: If you're going to make bullets long lines, you'll need
     // to track collision through leading edge or possibly all points along the line
@@ -45,7 +35,7 @@ inline void bullet_collision_system(Registry& registry) {
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
 
             if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
-                for (int p = 0; p < 50; p++) {
+                for (int p = 0; p < particle_max; p++) {
                     auto particle_theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
                     auto particle_speed = my_rng(250.f, 50.f, Dist::Normal);
                     auto particle_radius = my_rng(3.5f, .5f, Dist::Normal);
@@ -65,19 +55,23 @@ inline void bullet_collision_system(Registry& registry) {
                 }
 
                 if (asteroid_size.size > 1) {
-                    auto parent_speed = sqrt(pow(asteroid_transform.velocity.x, 2.f) + pow(asteroid_transform.velocity.y, 2.f));
+                    auto parent_speed = sqrt( pow(asteroid_transform.velocity.x, 2.f) + pow(asteroid_transform.velocity.y, 2.f));
                     int child_asteroids = 2;
                     for (int i = 0; i < child_asteroids; i++) {
                         Entity new_asteroid = registry.create();
                         auto new_theta = my_rng(0.f, 2.f * PI, Dist::Uniform); // angle(gen);
                         auto new_speed = my_rng(1.f, 1.f, Dist::Normal) * parent_speed;
+                        new_speed = std::clamp(new_speed, asteroid_init_speed * .5f, asteroid_init_speed * 3.f);
+
                         registry.add(new_asteroid, Size{ asteroid_size.radius, asteroid_size.size-1 });
                         registry.add(new_asteroid, Transform{
                             asteroid_transform.position,
                             { cos(new_theta) * new_speed, sin(new_theta) * new_speed },
                             0.f,
                             1.f });
-                        registry.add(new_asteroid, Asteroid{ generate_asteroid(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
+                        registry.add(
+                            new_asteroid,
+                            Asteroid{ generate_asteroid(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
                     }
                 }
 

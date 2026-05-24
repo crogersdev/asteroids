@@ -1,9 +1,8 @@
 #pragma once
 
 #include "../components.hpp"
+#include "../helpers.hpp"
 
-#include <cmath>
-#include <random>
 #include <vector>
 
 #include <raylib.h>
@@ -11,19 +10,15 @@
 namespace crogersdev {
 
 inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color color, float thickness) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    std::uniform_int_distribution<uint32_t> sides_generator(11, 23);
     std::discrete_distribution<uint32_t> radius_tolerance({ 65, 20, 10, 5 });
-    uint32_t sides = sides_generator(gen);
+    uint32_t sides = my_rng(11, 23, Dist::Uniform);
     uint32_t actual_radius = radius * size;
 
     float theta = 0.f;
     uint32_t radius_wobble = 0;
     std::vector<Vector2> asteroid_coords;
     for (int side = 0; side < sides; side++) {
-        radius_wobble = radius_tolerance(gen);
+        radius_wobble = radius_tolerance(get_generator());
         if (radius_wobble == 1) { actual_radius += actual_radius * .1f; }
         if (radius_wobble == 2) { actual_radius -= actual_radius * .2f; }
         if (radius_wobble == 3) { actual_radius -= actual_radius * .3f; }
