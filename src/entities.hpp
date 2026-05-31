@@ -2,6 +2,7 @@
 
 #include <any>
 #include <cstdint>
+#include <functional>
 #include <typeindex>
 #include <unordered_map>
 #include <raylib.h>
@@ -27,6 +28,13 @@ private:
 
     template <typename T>
     struct excluded_pack;
+
+    template <typename ...Ts>
+    struct excluded_pack<Exclude<Ts...>> {
+        static bool none_present(Registry& r, Entity id) {
+            return (!r.has<Ts>(id) && ...);
+        }
+    };
 
     Entity next_id = 0;
     std::unordered_map<std::type_index, std::any> pools;
@@ -138,13 +146,6 @@ public:
         auto& pool = get_pool<T>();
         return pool.find(e) != pool.end();
     }
-
-    template <typename ...Ts>
-    struct excluded_pack<Exclude<Ts...>> {
-        static bool none_present(Registry& r, Entity id) {
-            return (!r.has<Ts>(id) && ...);
-        }
-    };
 
     template <typename T>
     bool search_with_filter(Entity id) {

@@ -7,6 +7,7 @@
 #include "../entities.hpp"
 #include "../helpers.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -59,8 +60,8 @@ inline void bullet_collision_system(Registry& registry) {
                     int child_asteroids = 2;
                     for (int i = 0; i < child_asteroids; i++) {
                         Entity new_asteroid = registry.create();
-                        auto new_theta = my_rng(0.f, 2.f * PI, Dist::Uniform); // angle(gen);
-                        auto new_speed = my_rng(1.f, 1.f, Dist::Normal) * parent_speed;
+                        float new_theta = my_rng(0.f, 2.f * PI, Dist::Uniform); // angle(gen);
+                        float new_speed = my_rng(1.f, 1.f, Dist::Normal) * parent_speed;
                         new_speed = std::clamp(new_speed, asteroid_init_speed * .5f, asteroid_init_speed * 3.f);
 
                         registry.add(new_asteroid, Size{ asteroid_size.radius, asteroid_size.size-1 });
