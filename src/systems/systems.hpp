@@ -225,19 +225,14 @@ inline void player_collision_system(Registry& registry) {
 
             asteroid_collision_radius = pow(asteroid_collision_radius, 2);
 
-            if (ship_invincibility.time_remaining > 0.f) {
-                
-            } else {
-
             if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
 
-                if (ship_invincibility.time_remaining == 0.f) {
+                if (ship_invincibility.time_remaining <= 0.f) {
                     registry.game_state.lives--;
                     ship_invincibility.time_remaining = ship_invincibility.max;
                 }
-            }
             }
         } // end for each asteroid
     } // end for each player
@@ -261,8 +256,23 @@ inline void sound_system(Registry& registry) {
 inline void shield_system(Registry& registry) {
     for (Entity shield_id : registry.view<Invincible>()) {
         auto& shield = registry.get<Invincible>(shield_id);
-        
-
+        if (shield.time_remaining > 0.f) {
+            shield.time_remaining -= GetFrameTime();
+            auto palette = neon_synth_palette;
+            if (shield.time_remaining <= shield.max && shield.time_remaining >= shield.max * .666f) {
+                shield.pivot_start = palette.full.start;
+                shield.pivot_end   = palette.full.end,
+                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, shield.max * .666f, shield.max);
+            } else if (shield.time_remaining < shield.max * .666f && shield.time_remaining >= shield.max * .333f) {
+                shield.pivot_start = palette.half.start;
+                shield.pivot_end   = palette.half.end;
+                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, shield.max * .333f, shield.max * .666f);
+            } else {
+                shield.pivot_start = palette.dead.start;
+                shield.pivot_end   = palette.dead.end;
+                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, 0.f, shield.max * .333f);
+            }
+        }
     }
 }
 
@@ -277,19 +287,9 @@ inline void render_system(Registry& registry) {
         const auto& transform = registry.get<Transform>(ship_id);
 
         Vector2 pos = transform.position;
-        auto& invincibility_timer = registry.get<Invincible>(ship_id); 
-        if (invincibility_timer.time_remaining > 0.f) {
-            std::cout << "time remaining: " << invincibility_timer.time_remaining << "\n";
-            invincibility_timer.time_remaining -= GetFrameTime();
-            auto it = invincibility_timer;
-            auto shield = neon_synth_palette;
-            if (it.time_remaining <= it.max && it.time_remaining >= it.max * .666f) {
-                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.full.start, shield.full.end, 1.f - normalize(it.time_remaining, it.max * .666f, it.max)));
-            } else if (it.time_remaining < it.max * .666f && it.time_remaining >= it.max * .333f) {
-                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.half.start, shield.half.end, 1.f - normalize(it.time_remaining, it.max * .333f, it.max * .666f)));
-            } else {
-                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.dead.start, shield.dead.end, 1.f - normalize(it.time_remaining, 0.f, it.max * .333f)));
-            }
+        auto& shield = registry.get<Invincible>(ship_id);
+        if (shield.time_remaining > 0.f) {
+            DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
         }
 
         Vector2 start = {}, end = {};

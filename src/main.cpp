@@ -38,6 +38,7 @@ int main(void) {
             player_collision_system(registry);
             movement_update_system(registry);
             weapon_system(registry);
+            shield_system(registry);
             render_system(registry);
             clear_player_inputs(registry);
             DrawFPS(10, 10);
