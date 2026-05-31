@@ -222,8 +222,12 @@ inline void player_collision_system(Registry& registry) {
                 pow(ship_right_fin.x - asteroid_transform.position.x, 2) +
                 pow(ship_right_fin.y - asteroid_transform.position.y, 2);
 
-            // if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
             asteroid_collision_radius = pow(asteroid_collision_radius, 2);
+
+            if (ship_invincibility.time_remaining > 0.f) {
+                
+            } else {
+
             if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
@@ -231,12 +235,11 @@ inline void player_collision_system(Registry& registry) {
                 if (ship_invincibility.time_remaining == 0.f) {
                     registry.game_state.lives--;
                     ship_invincibility.time_remaining = ship_invincibility.max;
-
                 }
-
             }
-        }
-    }
+            }
+        } // end for each asteroid
+    } // end for each player
 }
 
 inline void player_input_system(Registry& registry) {
@@ -252,6 +255,14 @@ inline void player_input_system(Registry& registry) {
 }
 
 inline void sound_system(Registry& registry) {
+}
+
+inline void shield_system(Registry& registry) {
+    for (Entity shield_id : registry.view<Invincible>()) {
+        auto& shield = registry.get<Invincible>(shield_id);
+        
+
+    }
 }
 
 inline void render_system(Registry& registry) {
@@ -270,12 +281,13 @@ inline void render_system(Registry& registry) {
             std::cout << "time remaining: " << invincibility_timer.time_remaining << "\n";
             invincibility_timer.time_remaining -= GetFrameTime();
             auto it = invincibility_timer;
+            auto shield = neon_synth_palette;
             if (it.time_remaining <= it.max && it.time_remaining >= it.max * .666f) {
-                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(FOREST_GREEN, LIME_GREEN, 1.f - normalize(it.time_remaining, it.max * .666f, it.max))); 
+                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.full.start, shield.full.end, 1.f - normalize(it.time_remaining, it.max * .666f, it.max)));
             } else if (it.time_remaining < it.max * .666f && it.time_remaining >= it.max * .333f) {
-                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(LIME_GREEN, YELLOW, 1.f - normalize(it.time_remaining, it.max * .333f, it.max * .666f)));
+                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.half.start, shield.half.end, 1.f - normalize(it.time_remaining, it.max * .333f, it.max * .666f)));
             } else {
-                DrawRing(pos, 20, 23, 0, 360, 36, ColorLerp(YELLOW, RED, 1.f - normalize(it.time_remaining, 0.f, it.max * .333f)));
+                DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.dead.start, shield.dead.end, 1.f - normalize(it.time_remaining, 0.f, it.max * .333f)));
             }
         }
 

@@ -12,7 +12,7 @@ struct Line              { Vector2 start, end; Color color; float thickness; };
 struct Asteroid          { std::vector<Line> lines; };
 struct Bullet            { Line bullet; float speed, age, lifespan; };
 struct Energy            { float max, remaining; };
-struct Invincible        { float max, time_remaining; };
+struct Invincible        { float max, time_remaining; Color start, end; };
 struct Particle          { float age, lifespan, radius; Color color; };
 struct PlayerInput       { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip       { std::array<Line, 4> lines; Vector2 orientation; float max_speed, acceleration; };

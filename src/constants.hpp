@@ -16,15 +16,50 @@ inline constexpr float    particle_age  = 0.f;
 inline constexpr uint32_t particle_max  = 50;
 inline constexpr float    particle_drag = 0.999f;
 
+inline constexpr uint32_t shield_radius    = 20;
+inline constexpr uint32_t shield_thickness = 3;
+
 inline constexpr float    player_acceleration = 750.f;
+inline constexpr float    player_drag_coeff = .995;
 inline constexpr float    player_invincible_period = 5.f;
 inline constexpr uint32_t player_max_ammo = 999;
 inline constexpr float    player_max_energy = 99.f;
 inline constexpr float    player_max_speed = 425.f;
 inline constexpr float    player_turn_speed = .08f;
-inline constexpr float    player_drag_coeff = .995;
 
 inline constexpr float    weapon_cooldown_period = 1.5f;
+
+struct ColorPair {
+    Color start;
+    Color end;
+};
+
+struct ShieldGradientPalette {
+    ColorPair full;
+    ColorPair half;
+    ColorPair dead;
+};
+
+// Palette 1: Standard Hazard Shield (Full Power -> Critical -> Failing)
+inline constexpr ShieldGradientPalette shield_status_palette{
+    .full = { Color{ 0,   100, 0,   255 }, Color{ 0,   255, 0,   255 } }, // Dark Green -> Bright Green
+    .half = { Color{ 0,   255, 0,   255 }, Color{ 255, 255, 0,   255 } }, // Bright Green -> Yellow
+    .dead = { Color{ 255, 255, 0,   255 }, Color{ 255, 0,   0,   255 } }  // Yellow -> Red
+};
+
+// Palette 2: Plasma Neon Shield (Overcharged -> Stable -> Depleted Void)
+inline constexpr ShieldGradientPalette neon_synth_palette{
+    .full = { Color{ 0,   240, 255, 255 }, Color{ 180, 0,   255, 255 } }, // Hyper Blue -> Stable Purple
+    .half = { Color{ 180, 0,   255, 255 }, Color{ 255, 0,   128, 255 } }, // Stable Purple -> Low Battery Pink
+    .dead = { Color{ 255, 0,   128, 255 }, Color{ 20,  0,   40,  0 } }    // Low Battery Pink -> Offline Void (Alpha 0)
+};
+
+// Palette 3: Obsidian Overload Shield (Volcanic - Melting down to cooled ash)
+inline constexpr ShieldGradientPalette solar_eclipse_palette{
+    .full = { Color{ 255, 220, 0,   255 }, Color{ 255, 80,  0,   255 } }, // Solar Gold -> Lava Orange
+    .half = { Color{ 255, 80,  0,   255 }, Color{ 90,  20,  20,  255 } }, // Lava Orange -> Smoldering Crimson
+    .dead = { Color{ 90,  20,  20,  255 }, Color{ 30,  30,  35,  50 } }   // Smoldering Crimson -> Cooled Ash (Faded)
+};
 
 // Reds
 const Color CRIMSON        = Color{ 220,  20,  60, 255 };
