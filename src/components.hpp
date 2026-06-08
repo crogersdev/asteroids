@@ -12,11 +12,10 @@ struct Line              { Vector2 start, end; Color color; float thickness; };
 
 struct Asteroid          { std::vector<Line> lines; };
 struct Bullet            { Line bullet; float speed, age, lifespan; };
-struct Energy            { float max, remaining; };
-struct Invincible        { float max, time_remaining, pivot_lerp; Color start, end, pivot_start, pivot_end; };
 struct Particle          { float age, lifespan, radius; Color color; };
 struct PlayerInput       { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip       { std::array<Line, 4> lines; Vector2 orientation; float max_speed, acceleration; };
+struct Shield            { float energy_max, energy_remaining, pivot_lerp; Color start, end, pivot_start, pivot_end; };
 struct Size              { uint32_t radius, size; };
 struct Sound             { bool playing; std::string path; };
 struct Transform         { Vector2 position, velocity; float rotation_speed, drag; };

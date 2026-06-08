@@ -19,8 +19,7 @@ inline void game_init(Registry& registry) {
     const Vector2 game_screen_center = { game_screen_x / 2.f, game_screen_y / 2.f };
 
     Entity player = registry.create();
-    registry.add(player, Energy{ player_max_energy, player_max_energy });
-    registry.add(player, Invincible{ player_invincible_period, 0.f });
+    registry.add(player, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
     registry.add(player, PlayerInput{ false, false, false, false });
         registry.add(player, Weapon{
         player_max_ammo,

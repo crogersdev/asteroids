@@ -12,9 +12,9 @@ namespace crogersdev {
 inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color color, float thickness) {
     std::discrete_distribution<uint32_t> radius_tolerance({ 65, 20, 10, 5 });
     uint32_t sides = my_rng(11, 23, Dist::Uniform);
-    double actual_radius = radius * size;
+    float actual_radius = radius * size;
 
-    double theta = 0.f;
+    float theta = 0.f;
     uint32_t radius_wobble = 0;
     std::vector<Vector2> asteroid_coords;
     for (int side = 0; side < sides; side++) {

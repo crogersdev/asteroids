@@ -9,6 +9,7 @@ namespace crogersdev {
 // Game Values
 
 inline constexpr uint32_t asteroid_init_speed = 125;
+inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr uint32_t asteroid_radius     = 12;
 inline constexpr uint32_t asteroid_size       = 4;
 
@@ -16,14 +17,13 @@ inline constexpr float    particle_age  = 0.f;
 inline constexpr uint32_t particle_max  = 50;
 inline constexpr float    particle_drag = 0.999f;
 
-inline constexpr uint32_t shield_radius    = 20;
-inline constexpr uint32_t shield_thickness = 3;
+inline constexpr uint32_t shield_radius     = 20;
+inline constexpr uint32_t shield_thickness  = 3;
+inline constexpr float    shield_max_energy = 99.f;
 
 inline constexpr float    player_acceleration = 750.f;
 inline constexpr float    player_drag_coeff = .995;
-inline constexpr float    player_invincible_period = 5.f;
 inline constexpr uint32_t player_max_ammo = 999;
-inline constexpr float    player_max_energy = 99.f;
 inline constexpr float    player_max_speed = 425.f;
 inline constexpr float    player_turn_speed = .08f;
 

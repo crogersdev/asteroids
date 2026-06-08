@@ -187,7 +187,7 @@ inline void movement_update_system(Registry& registry) {
 }
 
 inline void player_collision_system(Registry& registry) {
-    for (Entity ship_id : registry.view<PolygonShip, Invincible, Transform>()) {
+    for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& ship_transform = registry.get<Transform>(ship_id);
         Vector2 ship_tip = Vector2{
@@ -204,7 +204,7 @@ inline void player_collision_system(Registry& registry) {
             ship_transform.position.x + ship.lines[1].end.x,
             ship_transform.position.y + ship.lines[1].end.y
         };
-        auto& ship_invincibility = registry.get<Invincible>(ship_id);
+        auto& ship_shield = registry.get<Shield>(ship_id);
 
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
@@ -225,14 +225,14 @@ inline void player_collision_system(Registry& registry) {
 
             asteroid_collision_radius = pow(asteroid_collision_radius, 2);
 
+            // if shield is up, bounce off
+
+            // else handle shields going down until off then dead
             if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
 
-                if (ship_invincibility.time_remaining <= 0.f) {
-                    registry.game_state.lives--;
-                    ship_invincibility.time_remaining = ship_invincibility.max;
-                }
+                ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage; 
             }
         } // end for each asteroid
     } // end for each player
@@ -254,23 +254,22 @@ inline void sound_system(Registry& registry) {
 }
 
 inline void shield_system(Registry& registry) {
-    for (Entity shield_id : registry.view<Invincible>()) {
-        auto& shield = registry.get<Invincible>(shield_id);
-        if (shield.time_remaining > 0.f) {
-            shield.time_remaining -= GetFrameTime();
+    for (Entity shield_id : registry.view<Shield>()) {
+        auto& shield = registry.get<Shield>(shield_id);
+        if (shield.energy_remaining > 0.f) {
             auto palette = neon_synth_palette;
-            if (shield.time_remaining <= shield.max && shield.time_remaining >= shield.max * .666f) {
+            if (shield.energy_remaining <= shield.max && shield.energy_remaining >= shield.max * .666f) {
                 shield.pivot_start = palette.full.start;
                 shield.pivot_end   = palette.full.end,
-                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, shield.max * .666f, shield.max);
-            } else if (shield.time_remaining < shield.max * .666f && shield.time_remaining >= shield.max * .333f) {
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.max * .666f, shield.max);
+            } else if (shield.energy_remaining < shield.max * .666f && shield.energy_remaining >= shield.max * .333f) {
                 shield.pivot_start = palette.half.start;
                 shield.pivot_end   = palette.half.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, shield.max * .333f, shield.max * .666f);
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.max * .333f, shield.max * .666f);
             } else {
                 shield.pivot_start = palette.dead.start;
                 shield.pivot_end   = palette.dead.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.time_remaining, 0.f, shield.max * .333f);
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, 0.f, shield.max * .333f);
             }
         }
     }
