@@ -1,5 +1,7 @@
 #pragma once
 
+#include "constants.hpp"
+
 #include <any>
 #include <cstdint>
 #include <functional>
@@ -8,8 +10,6 @@
 #include <raylib.h>
 
 namespace crogersdev {
-
-using Entity = uint16_t;
 
 class Registry {
 private:

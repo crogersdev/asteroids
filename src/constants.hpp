@@ -6,8 +6,10 @@
 
 namespace crogersdev {
 
-// Game Values
+// useful types
+using Entity = uint16_t;
 
+// game values
 inline constexpr uint32_t asteroid_init_speed = 125;
 inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr uint32_t asteroid_radius     = 12;

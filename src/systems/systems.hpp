@@ -5,11 +5,11 @@
 #include "../components.hpp"
 #include "../constants.hpp"
 #include "../entities.hpp"
-#include "../helpers.hpp"
+#include "../helpers/game-state.hpp"
+#include "../helpers/helpers.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 #include <raylib.h>
 
@@ -232,6 +232,8 @@ inline void player_collision_system(Registry& registry) {
                 ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
                 ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
 
+                auto p = std::make_pair<Entity, Entity>(ship_id, asteroid_id);
+                if (!colliding_objects.count(p)) { colliding_objects.insert(p); }
                 ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage; 
             }
         } // end for each asteroid
@@ -258,18 +260,18 @@ inline void shield_system(Registry& registry) {
         auto& shield = registry.get<Shield>(shield_id);
         if (shield.energy_remaining > 0.f) {
             auto palette = neon_synth_palette;
-            if (shield.energy_remaining <= shield.max && shield.energy_remaining >= shield.max * .666f) {
+            if (shield.energy_remaining <= shield.energy_max && shield.energy_remaining >= shield.energy_max * .666f) {
                 shield.pivot_start = palette.full.start;
                 shield.pivot_end   = palette.full.end,
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.max * .666f, shield.max);
-            } else if (shield.energy_remaining < shield.max * .666f && shield.energy_remaining >= shield.max * .333f) {
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .666f, shield.energy_max);
+            } else if (shield.energy_remaining < shield.energy_max * .666f && shield.energy_remaining >= shield.energy_max * .333f) {
                 shield.pivot_start = palette.half.start;
                 shield.pivot_end   = palette.half.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.max * .333f, shield.max * .666f);
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .333f, shield.energy_max * .666f);
             } else {
                 shield.pivot_start = palette.dead.start;
                 shield.pivot_end   = palette.dead.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, 0.f, shield.max * .333f);
+                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, 0.f, shield.energy_max * .333f);
             }
         }
     }
@@ -281,15 +283,13 @@ inline void render_system(Registry& registry) {
     //       and draw all our stuff.  that means we can just straight up
     //       call DrawLineEx without any problems or concerns
 
-    for (Entity ship_id : registry.view<PolygonShip, Invincible, Transform>()) {
+    for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& transform = registry.get<Transform>(ship_id);
 
         Vector2 pos = transform.position;
-        auto& shield = registry.get<Invincible>(ship_id);
-        if (shield.time_remaining > 0.f) {
-            DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
-        }
+        auto& shield = registry.get<Shield>(ship_id);
+        DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
 
         Vector2 start = {}, end = {};
         for (const auto& ship_edge : ship.lines) {

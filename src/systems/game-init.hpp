@@ -4,7 +4,7 @@
 #include "../constants.hpp"
 #include "../components.hpp"
 #include "../entities.hpp"
-#include "../helpers.hpp"
+#include "../helpers/helpers.hpp"
 
 #include <cmath>
 
@@ -44,7 +44,6 @@ inline void game_init(Registry& registry) {
 
     const Vector2 one_third = { game_screen.x / 3.f, game_screen.y / 3.f };
     const Vector2 two_thirds = { 2.f*game_screen.x / 3.f, 2.f*game_screen.y / 3.f };
-
 
     for (uint8_t i = 0; i < registry.game_state.starting_asteroid_count; ++i) {
         float a_x = my_rng(0.f, two_thirds.x, Dist::Uniform);
