@@ -190,51 +190,34 @@ inline void player_collision_system(Registry& registry) {
     for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& ship_transform = registry.get<Transform>(ship_id);
-        Vector2 ship_tip = Vector2{
-            ship_transform.position.x + ship.lines[0].end.x,
-            ship_transform.position.y + ship.lines[0].end.y
-        };
 
-        Vector2 ship_left_fin = Vector2{
-            ship_transform.position.x + ship.lines[0].start.x,
-            ship_transform.position.y + ship.lines[0].start.y
-        };
-
-        Vector2 ship_right_fin = Vector2{
-            ship_transform.position.x + ship.lines[1].end.x,
-            ship_transform.position.y + ship.lines[1].end.y
-        };
         auto& ship_shield = registry.get<Shield>(ship_id);
 
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
 
+            auto ship_distance_to_asteroid =
+                pow(ship_transform.position.x - asteroid_transform.position.x, 2) +
+                pow(ship_transform.position.y - asteroid_transform.position.y, 2);
+
             auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
-            auto ship_tip_distance_to_asteroid =
-                pow(ship_tip.x - asteroid_transform.position.x, 2) +
-                pow(ship_tip.y - asteroid_transform.position.y, 2);
+            auto ship_shield_collision_radius = shield_radius + shield_thickness;
 
-            auto ship_left_fin_distance_to_asteroid =
-                pow(ship_left_fin.x - asteroid_transform.position.x, 2) +
-                pow(ship_left_fin.y - asteroid_transform.position.y, 2);
-
-            auto ship_right_fin_distance_to_asteroid =
-                pow(ship_right_fin.x - asteroid_transform.position.x, 2) +
-                pow(ship_right_fin.y - asteroid_transform.position.y, 2);
-
-            asteroid_collision_radius = pow(asteroid_collision_radius, 2);
-
-            // if shield is up, bounce off
-
-            // else handle shields going down until off then dead
-            if (ship_tip_distance_to_asteroid <= asteroid_collision_radius ||
-                ship_left_fin_distance_to_asteroid < asteroid_collision_radius ||
-                ship_right_fin_distance_to_asteroid < asteroid_collision_radius) {
-
-                auto p = std::make_pair<Entity, Entity>(ship_id, asteroid_id);
-                if (!colliding_objects.count(p)) { colliding_objects.insert(p); }
-                ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage; 
+            // NOTE:
+            // Start unoptimized:
+            // sqrt(dx² + dy²) <= r1 + r2
+            // Square both sides:
+            // dx² + dy² <= (r1 + r2)²
+            // The right side was r1 + r2 — a single number — before squaring. So it becomes (r1 + r2)², not r1² + r2².
+            if (ship_distance_to_asteroid <= pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
+                auto p = std::make_pair(ship_id, asteroid_id);
+                if (!colliding_objects.count(p)) {
+                    colliding_objects.insert(p);
+                    ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage; 
+                }
+            } else {
+                colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
             }
         } // end for each asteroid
     } // end for each player
@@ -289,7 +272,9 @@ inline void render_system(Registry& registry) {
 
         Vector2 pos = transform.position;
         auto& shield = registry.get<Shield>(ship_id);
-        DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
+        if (shield.energy_remaining > 0) {
+            DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
+        }
 
         Vector2 start = {}, end = {};
         for (const auto& ship_edge : ship.lines) {
