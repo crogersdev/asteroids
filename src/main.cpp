@@ -21,7 +21,7 @@ int main(void) {
 
     Registry registry = Registry();
 
-    registry.game_state = { 5, 0, 1 };
+    registry.game_state = { 5, 0, 2 };
     game_init(registry);
 
     while (!WindowShouldClose()) {
@@ -32,6 +32,7 @@ int main(void) {
 
             if (DEBUG_GAME) {
             }
+            if (registry.game_state.paused) { continue; }
 
             player_input_system(registry);
             bullet_collision_system(registry);

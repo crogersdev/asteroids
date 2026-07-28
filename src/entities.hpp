@@ -78,8 +78,10 @@ private:
         int score;
         int starting_asteroid_count;
 
-        GameState()                    : lives(5), score(0), starting_asteroid_count(4) { };
-        GameState(int l, int s, int a) : lives(l), score(s), starting_asteroid_count(a) { };
+        bool paused;
+
+        GameState()                    : lives(5), score(0), starting_asteroid_count(4), paused(false) { };
+        GameState(int l, int s, int a) : lives(l), score(s), starting_asteroid_count(a), paused(false) { };
     };
 
 public:

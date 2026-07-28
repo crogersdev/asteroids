@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <random>
 #include <type_traits>
 
@@ -27,6 +28,6 @@ inline T my_rng(T a, T b, Dist type) {
 }
 
 template <typename T>
-static T normalize(T x, T min, T max) {
-    return (x - min) / (max - min);
-};
+static T normalize(T x, T min, T max) { return (x - min) / (max - min); };
+
+inline void printVector(Vector2 v, std::string label) { std::cout << label << ": { " << v.x << ", " << v.y << " }"; };

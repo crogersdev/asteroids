@@ -12,6 +12,7 @@
 #include <cmath>
 
 #include <raylib.h>
+#include <raymath.h>
 
 namespace crogersdev {
 
@@ -183,38 +184,55 @@ inline void movement_update_system(Registry& registry) {
         transform.position.x = fmod(fmod(transform.position.x, w) + w, w);
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
-
 }
 
 inline void player_collision_system(Registry& registry) {
     for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
-        const auto& ship_transform = registry.get<Transform>(ship_id);
+        auto& ship_transform = registry.get<Transform>(ship_id);
 
         auto& ship_shield = registry.get<Shield>(ship_id);
 
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
-            const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
+            auto& asteroid_transform = registry.get<Transform>(asteroid_id);
 
-            auto ship_distance_to_asteroid =
-                pow(ship_transform.position.x - asteroid_transform.position.x, 2) +
-                pow(ship_transform.position.y - asteroid_transform.position.y, 2);
-
+            float asteroid_ship_distance_val = Vector2DistanceSqr(ship_transform.position, asteroid_transform.position);
             auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
             auto ship_shield_collision_radius = shield_radius + shield_thickness;
 
-            // NOTE:
-            // Start unoptimized:
-            // sqrt(dx² + dy²) <= r1 + r2
-            // Square both sides:
-            // dx² + dy² <= (r1 + r2)²
-            // The right side was r1 + r2 — a single number — before squaring. So it becomes (r1 + r2)², not r1² + r2².
-            if (ship_distance_to_asteroid <= pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
+            if (asteroid_ship_distance_val <= pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
                 auto p = std::make_pair(ship_id, asteroid_id);
                 if (!colliding_objects.count(p)) {
                     colliding_objects.insert(p);
-                    ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage; 
+                    ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage;
+
+                    // Vector2 ship_to_asteroid = Vector2Subtract(ship_transform.position, asteroid_transform.position);
+                    Vector2 ship_to_asteroid = Vector2Subtract(asteroid_transform.position, ship_transform.position);
+                    Vector2 n;
+                    n = Vector2Normalize(ship_to_asteroid);
+                    DrawLineEx(ship_transform.position, asteroid_transform.position, 3.f, YELLOW);
+                    printVector(ship_to_asteroid, "ship to asteroid");
+
+                    // begin drawing tangent to normal
+                    Vector2 tangent_position = Vector2Scale(n, shield_radius);
+                    // Vector2 tangent_position = Vector2Scale(Vector2Add(ship_transform.position, n), shield_radius);
+                    auto p_forward = Vector2Scale(Vector2Rotate(tangent_position, 1.5707), 50.f);
+                    auto p_backward = Vector2Scale(Vector2Rotate(tangent_position, -1.5707), 50.f);
+                    DrawLineEx(tangent_position, p_forward, 2.5f, ORANGE);
+                    DrawLineEx(tangent_position, p_backward, 2.5f, ORANGE);
+
+                    // NOTE: To reflect a velocity vector v about a normal n (where n is a unit vector):
+                    //       v' = v - 2(v·n)n
+                    Vector2 va = asteroid_transform.velocity;
+                    Vector2 current_velocity_arrow_end = Vector2Add(asteroid_transform.position, Vector2Scale(Vector2Normalize(asteroid_transform.velocity), 40.f));
+                    DrawLineEx(current_velocity_arrow_end, Vector2Scale(current_velocity_arrow_end, 40.f), 2.f, CYAN);
+                    // asteroid_transform.velocity = Vector2{ va.x - 2*Vector2DotProduct(va, n)*n.x, va.y - 2*Vector2DotProduct(va, n)*n.y };
+
+                    Vector2 vs = ship_transform.velocity;
+                    // ship_transform.velocity     = Vector2{ vs.x - 2*Vector2DotProduct(vs, n)*n.x, vs.y - 2*Vector2DotProduct(vs, n)*n.y };
+
+                    registry.game_state.paused = true;
                 }
             } else {
                 colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
@@ -285,6 +303,9 @@ inline void render_system(Registry& registry) {
 
             DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
         }
+
+        Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
+        DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
     for (Entity asteroid_id : registry.view<Asteroid, Transform>()) {
@@ -298,6 +319,8 @@ inline void render_system(Registry& registry) {
                        asteroid_edge.thickness,
                        asteroid_edge.color);
         }
+        Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
+        DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
     for (Entity bullet_id : registry.view<Bullet, Transform>()) {
