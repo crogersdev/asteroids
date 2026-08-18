@@ -185,7 +185,6 @@ inline void movement_update_system(Registry& registry) {
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
 }
-
 inline void player_collision_system(Registry& registry) {
     for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
@@ -207,32 +206,11 @@ inline void player_collision_system(Registry& registry) {
                     colliding_objects.insert(p);
                     ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage;
 
-                    // Vector2 ship_to_asteroid = Vector2Subtract(ship_transform.position, asteroid_transform.position);
-                    Vector2 ship_to_asteroid = Vector2Subtract(asteroid_transform.position, ship_transform.position);
-                    Vector2 n;
-                    n = Vector2Normalize(ship_to_asteroid);
-                    DrawLineEx(ship_transform.position, asteroid_transform.position, 3.f, YELLOW);
-                    printVector(ship_to_asteroid, "ship to asteroid");
+                    Vector2 n = Vector2Normalize(Vector2Subtract(ship_transform.position, asteroid_transform.position));
+                    Vector2 v = asteroid_transform.velocity;
+                    Vector2 new_asteroid_velocity = Vector2Subtract(v, Vector2Scale(n, 2.f * Vector2DotProduct(n, v)));
 
-                    // begin drawing tangent to normal
-                    Vector2 tangent_position = Vector2Scale(n, shield_radius);
-                    // Vector2 tangent_position = Vector2Scale(Vector2Add(ship_transform.position, n), shield_radius);
-                    auto p_forward = Vector2Scale(Vector2Rotate(tangent_position, 1.5707), 50.f);
-                    auto p_backward = Vector2Scale(Vector2Rotate(tangent_position, -1.5707), 50.f);
-                    DrawLineEx(tangent_position, p_forward, 2.5f, ORANGE);
-                    DrawLineEx(tangent_position, p_backward, 2.5f, ORANGE);
-
-                    // NOTE: To reflect a velocity vector v about a normal n (where n is a unit vector):
-                    //       v' = v - 2(v·n)n
-                    Vector2 va = asteroid_transform.velocity;
-                    Vector2 current_velocity_arrow_end = Vector2Add(asteroid_transform.position, Vector2Scale(Vector2Normalize(asteroid_transform.velocity), 40.f));
-                    DrawLineEx(current_velocity_arrow_end, Vector2Scale(current_velocity_arrow_end, 40.f), 2.f, CYAN);
-                    // asteroid_transform.velocity = Vector2{ va.x - 2*Vector2DotProduct(va, n)*n.x, va.y - 2*Vector2DotProduct(va, n)*n.y };
-
-                    Vector2 vs = ship_transform.velocity;
-                    // ship_transform.velocity     = Vector2{ vs.x - 2*Vector2DotProduct(vs, n)*n.x, vs.y - 2*Vector2DotProduct(vs, n)*n.y };
-
-                    registry.game_state.paused = true;
+                    asteroid_transform.velocity = new_asteroid_velocity;
                 }
             } else {
                 colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
