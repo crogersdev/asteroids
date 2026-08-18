@@ -19,7 +19,7 @@ enum class asteroid_size_t {
     SMALL  = 2,
     MEDIUM = 3,
     LARGE  = 4,
-    COUNT = 4
+    COUNT  = 4
 };
 
 asteroid_size_t operator+(asteroid_size_t s, int steps) {
