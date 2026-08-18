@@ -1,18 +1,19 @@
 #pragma once
 
+#include "../constants.hpp"
 #include "../components.hpp"
 #include "../helpers/helpers.hpp"
 
 #include <vector>
-
 #include <raylib.h>
 
 namespace crogersdev {
 
-inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color color, float thickness) {
+inline std::vector<Line> generate_asteroid(asteroid_size_t size, uint32_t radius, Color color, float thickness) {
     std::discrete_distribution<uint32_t> radius_tolerance({ 65, 20, 10, 5 });
     uint32_t sides = my_rng(11, 23, Dist::Uniform);
-    float actual_radius = radius * size;
+    uint32_t sz = static_cast<uint32_t>(size);
+    float actual_radius = radius * sz;
 
     float theta = 0.f;
     uint32_t radius_wobble = 0;
@@ -24,7 +25,7 @@ inline std::vector<Line> generate_asteroid(uint32_t size, uint32_t radius, Color
         if (radius_wobble == 3) { actual_radius -= actual_radius * .3f; }
         theta += (2.f*PI / sides);
         asteroid_coords.push_back({ cos(theta) * actual_radius, sin(theta) * actual_radius });
-        actual_radius = size * radius;
+        actual_radius = radius * sz;
     }
     std::vector<Line> asteroid_shape;
     asteroid_shape.push_back(Line{ asteroid_coords.at(0), asteroid_coords.at(1), color, thickness });

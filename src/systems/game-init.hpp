@@ -7,7 +7,6 @@
 #include "../helpers/helpers.hpp"
 
 #include <cmath>
-
 #include <raylib.h>
 
 namespace crogersdev {
@@ -56,9 +55,9 @@ inline void game_init(Registry& registry) {
         float theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
         float dir_x = cos(theta);
         float dir_y = sin(theta);
-        registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size });
+        registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size_t::LARGE });
         registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 1.f });
-        registry.add(asteroids.at(i), Asteroid{ generate_asteroid(asteroid_size, asteroid_radius, RED, 1.25f) });
+        registry.add(asteroids.at(i), Asteroid{ generate_asteroid(asteroid_size_t::LARGE, asteroid_radius, RED, 1.25f) });
     }
 
     Entity explosion_sound = registry.create();

@@ -1,7 +1,7 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
-
 #include <raylib.h>
 
 namespace crogersdev {
@@ -13,7 +13,36 @@ using Entity = uint16_t;
 inline constexpr uint32_t asteroid_init_speed = 125;
 inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr uint32_t asteroid_radius     = 12;
-inline constexpr uint32_t asteroid_size       = 4;
+
+enum class asteroid_size_t {
+    TINY   = 1,
+    SMALL  = 2,
+    MEDIUM = 3,
+    LARGE  = 4,
+    COUNT = 4
+};
+
+asteroid_size_t operator+(asteroid_size_t s, int steps) {
+    int current = static_cast<int>(s);
+    int total = static_cast<int>(asteroid_size_t::COUNT);
+    int next = std::clamp(current + steps, 0, total - 1);
+    return static_cast<asteroid_size_t>(next);
+}
+
+asteroid_size_t operator+(int steps, asteroid_size_t s) {
+    return s + steps;
+}
+
+asteroid_size_t operator-(asteroid_size_t s, int steps) {
+    int current = static_cast<int>(s);
+    int total = static_cast<int>(asteroid_size_t::COUNT);
+    int next = std::clamp(current - steps, 0, total - 1);
+    return static_cast<asteroid_size_t>(next);
+}
+
+asteroid_size_t operator-(int steps, asteroid_size_t s) {
+    return s - steps;
+}
 
 inline constexpr float    particle_age  = 0.f;
 inline constexpr uint32_t particle_max  = 50;

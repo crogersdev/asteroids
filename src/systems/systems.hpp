@@ -10,7 +10,6 @@
 
 #include <algorithm>
 #include <cmath>
-
 #include <raylib.h>
 #include <raymath.h>
 
@@ -30,8 +29,9 @@ inline void bullet_collision_system(Registry& registry) {
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
+            const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
 
-            auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
+            auto asteroid_collision_radius = asteroid_size.radius * sz;
             auto bullet_distance_to_asteroid =
                 pow(bullet_transform.position.x - asteroid_transform.position.x, 2) +
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
@@ -56,7 +56,7 @@ inline void bullet_collision_system(Registry& registry) {
                         particle_drag });
                 }
 
-                if (asteroid_size.size > 1) {
+                if (asteroid_size.size > asteroid_size_t::TINY) {
                     auto parent_speed = sqrt( pow(asteroid_transform.velocity.x, 2.f) + pow(asteroid_transform.velocity.y, 2.f));
                     int child_asteroids = 2;
                     for (int i = 0; i < child_asteroids; i++) {
@@ -194,27 +194,40 @@ inline void player_collision_system(Registry& registry) {
 
         for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
+            const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
+
             auto& asteroid_transform = registry.get<Transform>(asteroid_id);
 
             float asteroid_ship_distance_val = Vector2DistanceSqr(ship_transform.position, asteroid_transform.position);
-            auto asteroid_collision_radius = asteroid_size.radius * asteroid_size.size;
+            auto asteroid_collision_radius = asteroid_size.radius * sz;
             auto ship_shield_collision_radius = shield_radius + shield_thickness;
 
-            if (asteroid_ship_distance_val <= pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
-                auto p = std::make_pair(ship_id, asteroid_id);
-                if (!colliding_objects.count(p)) {
-                    colliding_objects.insert(p);
-                    ship_shield.energy_remaining -= asteroid_size.size * asteroid_damage;
-
-                    Vector2 n = Vector2Normalize(Vector2Subtract(ship_transform.position, asteroid_transform.position));
-                    Vector2 v = asteroid_transform.velocity;
-                    Vector2 new_asteroid_velocity = Vector2Subtract(v, Vector2Scale(n, 2.f * Vector2DotProduct(n, v)));
-
-                    asteroid_transform.velocity = new_asteroid_velocity;
-                }
-            } else {
+            if (asteroid_ship_distance_val > pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
                 colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
+                continue;
             }
+
+            auto p = std::make_pair(ship_id, asteroid_id);
+
+            if (colliding_objects.count(p)) { continue; }  // if we're already colliding during this frame, skip.
+
+            colliding_objects.insert(p);
+
+            if (ship_shield.energy_remaining <= sz * asteroid_damage) {
+                std::cout << "bro i think you dead.\n";
+            }
+
+            ship_shield.energy_remaining -= sz * asteroid_damage;
+
+            Vector2 n = Vector2Normalize(Vector2Subtract(ship_transform.position, asteroid_transform.position));
+            Vector2 a_v = asteroid_transform.velocity;
+            Vector2 new_asteroid_velocity = Vector2Subtract(a_v, Vector2Scale(n, 2.f * Vector2DotProduct(n, a_v)));
+            Vector2 s_v = ship_transform.velocity;
+            Vector2 new_ship_velocity = Vector2Subtract(s_v, Vector2Scale(n, 2.f * Vector2DotProduct(n, s_v)));
+
+            //if (asteroid_size.size == )
+            asteroid_transform.velocity = new_asteroid_velocity;
+            ship_transform.velocity = new_ship_velocity;
         } // end for each asteroid
     } // end for each player
 }
