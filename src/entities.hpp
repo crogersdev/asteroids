@@ -12,6 +12,7 @@
 namespace crogersdev {
 
 class Registry {
+
 private:
     template <typename ...Ts>
     struct Exclude {};
@@ -73,15 +74,23 @@ private:
     }
 
     struct GameState {
-
         int lives;
         int score;
         int starting_asteroid_count;
 
-        bool paused;
+        state_t current_state;
 
-        GameState()                    : lives(5), score(0), starting_asteroid_count(4), paused(false) { };
-        GameState(int l, int s, int a) : lives(l), score(s), starting_asteroid_count(a), paused(false) { };
+        GameState()
+        : lives(5),
+          score(0),
+          starting_asteroid_count(4),
+          current_state(state_t::MENU) { };
+
+        GameState(int l, int s, int a)
+        : lives(l),
+          score(s),
+          starting_asteroid_count(a),
+          current_state(state_t::MENU) { };
     };
 
 public:
@@ -170,7 +179,6 @@ public:
     }
 
     GameState game_state;
-
 };
 
 }

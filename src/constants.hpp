@@ -10,8 +10,10 @@ namespace crogersdev {
 using Entity = uint16_t;
 
 // game values
-inline constexpr uint32_t asteroid_init_speed = 125;
+inline constexpr float    asteroid_init_speed = 125.f;
 inline constexpr uint32_t asteroid_damage     = 10;
+inline constexpr float    asteroid_max_speed  = 200.f;
+inline constexpr float    asteroid_min_speed  = 100.f;
 inline constexpr uint32_t asteroid_radius     = 12;
 
 enum class asteroid_size_t {
@@ -20,6 +22,14 @@ enum class asteroid_size_t {
     MEDIUM = 3,
     LARGE  = 4,
     COUNT  = 4
+};
+
+enum class state_t {
+    MENU,
+    PLAYING,
+    PAUSED,
+    DYING,
+    GAME_OVER
 };
 
 asteroid_size_t operator+(asteroid_size_t s, int steps) {
@@ -53,10 +63,10 @@ inline constexpr uint32_t shield_thickness  = 3;
 inline constexpr float    shield_max_energy = 99.f;
 
 inline constexpr float    player_acceleration = 750.f;
-inline constexpr float    player_drag_coeff = .995;
-inline constexpr uint32_t player_max_ammo = 999;
-inline constexpr float    player_max_speed = 425.f;
-inline constexpr float    player_turn_speed = .08f;
+inline constexpr float    player_drag_coeff   = .995;
+inline constexpr uint32_t player_max_ammo     = 999;
+inline constexpr float    player_max_speed    = 425.f;
+inline constexpr float    player_turn_speed   = .08f;
 
 inline constexpr float    weapon_cooldown_period = 1.5f;
 

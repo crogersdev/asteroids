@@ -26,7 +26,7 @@ inline void bullet_collision_system(Registry& registry) {
     for (Entity bullet_id : registry.view<Bullet, Transform>()) {
         const auto& bullet_transform = registry.get<Transform>(bullet_id);
 
-        for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
+        for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
             const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
@@ -53,7 +53,8 @@ inline void bullet_collision_system(Registry& registry) {
                         asteroid_transform.position,
                         { cos(particle_theta) * particle_speed, sin(particle_theta) * particle_speed },
                         0.f,
-                        particle_drag });
+                        particle_drag,
+                        0.f });
                 }
 
                 if (asteroid_size.size > asteroid_size_t::TINY) {
@@ -70,10 +71,11 @@ inline void bullet_collision_system(Registry& registry) {
                             asteroid_transform.position,
                             { cos(new_theta) * new_speed, sin(new_theta) * new_speed },
                             0.f,
-                            1.f });
+                            1.f,
+                            0.f });
                         registry.add(
                             new_asteroid,
-                            Asteroid{ generate_asteroid(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
+                            AsteroidShape{ generate_asteroid_shape(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
                     }
                 }
 
@@ -116,6 +118,13 @@ inline void clear_player_inputs(Registry& registry) {
 
 inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
+}
+
+inline void manage_game_state(Registry& registry) {
+    if (registry.game_state.current_state == state_t::PAUSED) {
+        std::cout << "foo\n";
+    }
+
 }
 
 inline void movement_update_system(Registry& registry) {
@@ -192,7 +201,7 @@ inline void player_collision_system(Registry& registry) {
 
         auto& ship_shield = registry.get<Shield>(ship_id);
 
-        for (Entity asteroid_id : registry.view<Asteroid, Size, Transform>()) {
+        for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
             const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
 
@@ -215,6 +224,12 @@ inline void player_collision_system(Registry& registry) {
 
             if (ship_shield.energy_remaining <= sz * asteroid_damage) {
                 std::cout << "bro i think you dead.\n";
+                registry.game_state.lives--;
+                if (registry.game_state.lives > 0) {
+                    registry.game_state.current_state = state_t::DYING;
+                } else {
+                    registry.game_state.current_state = state_t::GAME_OVER;
+                }
             }
 
             ship_shield.energy_remaining -= sz * asteroid_damage;
@@ -225,9 +240,13 @@ inline void player_collision_system(Registry& registry) {
             Vector2 s_v = ship_transform.velocity;
             Vector2 new_ship_velocity = Vector2Subtract(s_v, Vector2Scale(n, 2.f * Vector2DotProduct(n, s_v)));
 
-            //if (asteroid_size.size == )
-            asteroid_transform.velocity = new_asteroid_velocity;
-            ship_transform.velocity = new_ship_velocity;
+            if (asteroid_size.size == asteroid_size_t::LARGE) {
+                asteroid_transform.velocity = Vector2Add(new_asteroid_velocity, Vector2Scale(new_asteroid_velocity, .25f));
+                ship_transform.velocity = Vector2Add(new_ship_velocity, Vector2Scale(new_ship_velocity, 2.f));
+            } else if (asteroid_size.size == asteroid_size_t::MEDIUM) {
+            } else if (asteroid_size.size == asteroid_size_t::SMALL) {
+            } else if (asteroid_size.size == asteroid_size_t::TINY) {
+            }
         } // end for each asteroid
     } // end for each player
 }
@@ -299,16 +318,17 @@ inline void render_system(Registry& registry) {
         DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
-    for (Entity asteroid_id : registry.view<Asteroid, Transform>()) {
-        const auto& asteroid = registry.get<Asteroid>(asteroid_id);
+    for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {
+        const auto& asteroid_shape = registry.get<AsteroidShape>(asteroid_id);
         const auto& transform = registry.get<Transform>(asteroid_id);
         Vector2 pos = transform.position;
 
-        for (const auto& asteroid_edge : asteroid.lines) {
-            DrawLineEx({ asteroid_edge.start.x + pos.x, asteroid_edge.start.y + pos.y },
-                       { asteroid_edge.end.x   + pos.x, asteroid_edge.end.y   + pos.y },
-                       asteroid_edge.thickness,
-                       asteroid_edge.color);
+        for (const auto& edge : asteroid_shape.lines) {
+            DrawLineEx(
+                { edge.start.x + pos.x, edge.start.y + pos.y },
+                { edge.end.x   + pos.x, edge.end.y   + pos.y },
+                edge.thickness,
+                edge.color);
         }
         Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
         DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
@@ -328,9 +348,8 @@ inline void render_system(Registry& registry) {
     for (Entity particle_id : registry.view<Particle, Transform>()) {
         const auto& particle = registry.get<Particle>(particle_id);
         const auto& particle_transform = registry.get<Transform>(particle_id);
-        Vector2 pos = particle_transform.position;
 
-        DrawCircleGradient(pos.x, pos.y, particle.radius, particle.color, BLACK);
+        DrawCircleGradient(particle_transform.position, particle.radius, particle.color, BLACK);
     }
 }
 
@@ -373,7 +392,8 @@ inline void weapon_system(Registry& registry) {
                     ship.orientation.x * bullet_speed,
                     ship.orientation.y * bullet_speed },
                 0.f,
-                1.f });
+                1.f,
+                0.f });
         }
 
         if (weapon.cooldown_timer >  0.f) { weapon.cooldown_timer -= GetFrameTime(); }

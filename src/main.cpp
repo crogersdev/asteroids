@@ -32,8 +32,8 @@ int main(void) {
 
             if (DEBUG_GAME) {
             }
-            if (registry.game_state.paused) { continue; }
 
+            manage_game_state(registry);
             player_input_system(registry);
             bullet_collision_system(registry);
             player_collision_system(registry);

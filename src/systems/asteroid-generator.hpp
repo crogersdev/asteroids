@@ -9,7 +9,7 @@
 
 namespace crogersdev {
 
-inline std::vector<Line> generate_asteroid(asteroid_size_t size, uint32_t radius, Color color, float thickness) {
+inline std::vector<Line> generate_asteroid_shape(asteroid_size_t size, uint32_t radius, Color color, float thickness) {
     std::discrete_distribution<uint32_t> radius_tolerance({ 65, 20, 10, 5 });
     uint32_t sides = my_rng(11, 23, Dist::Uniform);
     uint32_t sz = static_cast<uint32_t>(size);
