@@ -24,6 +24,11 @@ enum class asteroid_size_t {
     COUNT  = 4
 };
 
+enum class menu_options_t {
+    START,
+    QUIT
+};
+
 enum class state_t {
     MENU,
     PLAYING,

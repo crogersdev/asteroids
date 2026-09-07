@@ -30,10 +30,20 @@ int main(void) {
         BeginDrawing();
             ClearBackground(BLACK);
 
-            if (DEBUG_GAME) {
+            if (DEBUG_GAME) { }
+
+            if (registry.game_state.current_state == state_t::MENU) {
+                menu_draw_system(registry);
+                menu_input_system(registry);
             }
 
-            manage_game_state(registry);
+            if (registry.game_state.current_state == state_t::PAUSED) {
+                std::cout << "foo\n";
+            }
+            if (registry.game_state.current_state == state_t::PLAYING) {
+
+            }
+
             player_input_system(registry);
             bullet_collision_system(registry);
             player_collision_system(registry);
@@ -43,6 +53,7 @@ int main(void) {
             render_system(registry);
             clear_player_inputs(registry);
             DrawFPS(10, 10);
+
         EndDrawing();
     }
 

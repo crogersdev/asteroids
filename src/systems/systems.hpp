@@ -120,11 +120,24 @@ inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
 
-inline void manage_game_state(Registry& registry) {
-    if (registry.game_state.current_state == state_t::PAUSED) {
-        std::cout << "foo\n";
-    }
+inline void menu_draw_system(Registry& registry) {
+    // get position for title
+    // load font
+    // render title "Asteroids"
+    // listen for input
+    // change selection based on selection 
+    //     this means our keyboard input needs to know state and behave accordingly
+    // update state depending on what was chosen, let the systems handle it 
+}
 
+inline void menu_input_system(Registry& registry) {
+    for (Entity player_id : registry.view<PlayerInput>()) {
+        auto& player = registry.get<PlayerInput>(player_id);
+
+        if (IsKeyDown(KEY_W))        { player.thrust = true; }
+        if (IsKeyDown(KEY_A))        { player.rotate_left = true; }
+        if (IsKeyDown(KEY_S))        { }
+    }
 }
 
 inline void movement_update_system(Registry& registry) {

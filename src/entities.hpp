@@ -78,18 +78,21 @@ private:
         int score;
         int starting_asteroid_count;
 
+        menu_options_t menu_selected_option;
         state_t current_state;
 
         GameState()
         : lives(5),
           score(0),
           starting_asteroid_count(4),
+          menu_selected_option(menu_options_t::START),
           current_state(state_t::MENU) { };
 
         GameState(int l, int s, int a)
         : lives(l),
           score(s),
           starting_asteroid_count(a),
+          menu_selected_option(menu_options_t::START),
           current_state(state_t::MENU) { };
     };
 
