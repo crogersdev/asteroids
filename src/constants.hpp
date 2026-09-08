@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <raylib.h>
 
 namespace crogersdev {
@@ -36,6 +37,30 @@ enum class state_t {
     DYING,
     GAME_OVER
 };
+
+struct Assets {
+    Font menu_title_font;
+    Font menu_option_font;
+
+    Assets()
+    : menu_title_font(LoadFontEx("../assets/futurism.ttf", 48, NULL, 0)),
+      menu_option_font(LoadFontEx("../assets/cubic.ttf", 24, NULL, 0)) { };
+
+    ~Assets() {
+        UnloadFont(menu_option_font);
+        UnloadFont(menu_title_font);
+    }
+
+    // NOTE: explicitly prevent copy ctor; raylib's underlying Font struct
+    //       uses a Texture2D object which manually allocates memory.
+    //       if we don't prevent copy ctor's then we'll have multiple
+    //       objects pointing at the same spot in memory and have double
+    //       free errors on destruction.
+    Assets(const Assets&) = delete;
+    Assets operator=(const Assets&) = delete;
+};
+
+std::shared_ptr<Assets> assets = nullptr;
 
 asteroid_size_t operator+(asteroid_size_t s, int steps) {
     int current = static_cast<int>(s);

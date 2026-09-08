@@ -20,7 +20,7 @@ inline void game_init(Registry& registry) {
     Entity player = registry.create();
     registry.add(player, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
     registry.add(player, PlayerInput{ false, false, false, false });
-        registry.add(player, Weapon{
+    registry.add(player, Weapon{
         player_max_ammo,
         0.f,
         weapon_cooldown_period,

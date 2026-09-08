@@ -14,6 +14,7 @@ struct Line              { Vector2 start, end; Color color; float thickness; };
 
 struct AsteroidShape     { std::vector<Line> lines; };
 struct Bullet            { Line bullet; float speed, age, lifespan; };
+struct MenuInput         { menu_options_t selected; };
 struct Particle          { float age, lifespan, radius; Color color; };
 struct PlayerInput       { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip       { std::array<Line, 4> lines; Vector2 orientation; float max_speed, acceleration; };

@@ -121,23 +121,12 @@ inline void draw_debug_info() {
 }
 
 inline void menu_draw_system(Registry& registry) {
-    // get position for title
-    // load font
-    // render title "Asteroids"
-    // listen for input
-    // change selection based on selection 
-    //     this means our keyboard input needs to know state and behave accordingly
-    // update state depending on what was chosen, let the systems handle it 
+    DrawTextEx(assets->menu_title_font, "asteroids", {30, 40}, 48, 2, CYAN);
 }
 
 inline void menu_input_system(Registry& registry) {
-    for (Entity player_id : registry.view<PlayerInput>()) {
-        auto& player = registry.get<PlayerInput>(player_id);
-
-        if (IsKeyDown(KEY_W))        { player.thrust = true; }
-        if (IsKeyDown(KEY_A))        { player.rotate_left = true; }
-        if (IsKeyDown(KEY_S))        { }
-    }
+    if (IsKeyDown(KEY_UP)) { registry.game_state.nextMenuOption(registry.game_state.menu_selected_option); }
+    if (IsKeyDown(KEY_DOWN)) { registry.game_state.prevMenuOption(registry.game_state.menu_selected_option); }
 }
 
 inline void movement_update_system(Registry& registry) {

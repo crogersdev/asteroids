@@ -94,6 +94,20 @@ private:
           starting_asteroid_count(a),
           menu_selected_option(menu_options_t::START),
           current_state(state_t::MENU) { };
+
+        inline void nextMenuOption(menu_options_t& current) {
+            switch (current) {
+                case menu_options_t::START: current = menu_options_t::QUIT;  break;
+                case menu_options_t::QUIT:  current = menu_options_t::START; break;
+            }
+        };
+
+        inline void prevMenuOption(menu_options_t& current) {
+            switch (current) {
+                case menu_options_t::START: current = menu_options_t::QUIT;  break;
+                case menu_options_t::QUIT:  current = menu_options_t::START; break;
+            }
+        };
     };
 
 public:
