@@ -121,7 +121,11 @@ inline void draw_debug_info() {
 }
 
 inline void menu_draw_system(Registry& registry) {
-    DrawTextEx(assets->menu_title_font, "asteroids", {30, 40}, 48, 2, CYAN);
+    std::string menu = "asteroids";
+    float menu_title_font_size = 150.f;
+    Vector2 title_bounding_box = MeasureTextEx(assets->menu_title_font, menu.c_str(), menu_title_font_size, 2.f); 
+    float horizontal_margin = (SCREEN_WIDTH - title_bounding_box.x) / 2.f;
+    DrawTextEx(assets->menu_title_font, "asteroids", {horizontal_margin, 40}, menu_title_font_size, 2.f, CYAN);
 }
 
 inline void menu_input_system(Registry& registry) {

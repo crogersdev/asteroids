@@ -11,6 +11,10 @@ namespace crogersdev {
 using Entity = uint16_t;
 
 // game values
+inline constexpr bool DEBUG_GAME = true;
+inline constexpr int  SCREEN_WIDTH = 800;
+inline constexpr int  SCREEN_HEIGHT = 600;
+
 inline constexpr float    asteroid_init_speed = 125.f;
 inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr float    asteroid_max_speed  = 200.f;
@@ -43,8 +47,8 @@ struct Assets {
     Font menu_option_font;
 
     Assets()
-    : menu_title_font(LoadFontEx("../assets/futurism.ttf", 48, NULL, 0)),
-      menu_option_font(LoadFontEx("../assets/cubic.ttf", 24, NULL, 0)) { };
+    : menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 150.f, NULL, 0)),
+      menu_option_font(LoadFontEx("../assets/cubic.ttf", 24.f, NULL, 0)) { };
 
     ~Assets() {
         UnloadFont(menu_option_font);

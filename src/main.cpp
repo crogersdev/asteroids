@@ -3,11 +3,6 @@
 
 #include <raylib.h>
 
-const bool DEBUG_GAME = true;
-
-const int SCREEN_WIDTH = 800;
-const int SCREEN_HEIGHT = 600;
-
 using namespace crogersdev;
 
 int main(void) {
