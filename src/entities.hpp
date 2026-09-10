@@ -97,15 +97,17 @@ private:
 
         inline void nextMenuOption(menu_options_t& current) {
             switch (current) {
-                case menu_options_t::START: current = menu_options_t::QUIT;  break;
-                case menu_options_t::QUIT:  current = menu_options_t::START; break;
+                case menu_options_t::START:    current = menu_options_t::SETTINGS;  break;
+                case menu_options_t::SETTINGS: current = menu_options_t::QUIT;      break;
+                case menu_options_t::QUIT:     current = menu_options_t::START;     break;
             }
         };
 
         inline void prevMenuOption(menu_options_t& current) {
             switch (current) {
-                case menu_options_t::START: current = menu_options_t::QUIT;  break;
-                case menu_options_t::QUIT:  current = menu_options_t::START; break;
+                case menu_options_t::START:    current = menu_options_t::QUIT;     break;
+                case menu_options_t::SETTINGS: current = menu_options_t::START;    break;
+                case menu_options_t::QUIT:     current = menu_options_t::SETTINGS; break;
             }
         };
     };

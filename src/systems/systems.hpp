@@ -121,11 +121,31 @@ inline void draw_debug_info() {
 }
 
 inline void menu_draw_system(Registry& registry) {
-    std::string menu = "asteroids";
+    std::string menu_title = "asteroids";
     float menu_title_font_size = 150.f;
-    Vector2 title_bounding_box = MeasureTextEx(assets->menu_title_font, menu.c_str(), menu_title_font_size, 2.f); 
+    float menu_option_font_size = 48.f;
+
+    Vector2 title_bounding_box = MeasureTextEx(assets->menu_title_font, menu_title.c_str(), menu_title_font_size, 2.f); 
     float horizontal_margin = (SCREEN_WIDTH - title_bounding_box.x) / 2.f;
-    DrawTextEx(assets->menu_title_font, "asteroids", {horizontal_margin, 40}, menu_title_font_size, 2.f, CYAN);
+    DrawTextEx(assets->menu_title_font, menu_title.c_str(), { horizontal_margin, 40.f }, menu_title_font_size, 2.f, CYAN);
+
+    Color menu_option_color = CYAN;
+    // chris this is where we figure out a clean way to set the color based on which state 
+
+    Vector2 menu_options_box = MeasureTextEx(assets->menu_option_font, "start", menu_option_font_size, 2.f);
+    float vertical_margin = SCREEN_HEIGHT / 2.f;
+    horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
+    DrawTextEx(assets->menu_option_font, "start",    { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
+
+    menu_options_box = MeasureTextEx(assets->menu_option_font, "settings", menu_option_font_size, 2.f);
+    vertical_margin += menu_option_font_size + menu_option_font_size * .5f;
+    horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
+    DrawTextEx(assets->menu_option_font, "settings", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
+
+    menu_options_box = MeasureTextEx(assets->menu_option_font, "quit", menu_option_font_size, 2.f);
+    vertical_margin += menu_option_font_size + menu_option_font_size * .5f;
+    horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
+    DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
 }
 
 inline void menu_input_system(Registry& registry) {

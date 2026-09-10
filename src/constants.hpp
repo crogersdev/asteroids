@@ -29,8 +29,31 @@ enum class asteroid_size_t {
     COUNT  = 4
 };
 
+asteroid_size_t operator+(asteroid_size_t s, int steps) {
+    int current = static_cast<int>(s);
+    int total = static_cast<int>(asteroid_size_t::COUNT);
+    int next = std::clamp(current + steps, 0, total - 1);
+    return static_cast<asteroid_size_t>(next);
+}
+
+asteroid_size_t operator+(int steps, asteroid_size_t s) {
+    return s + steps;
+}
+
+asteroid_size_t operator-(asteroid_size_t s, int steps) {
+    int current = static_cast<int>(s);
+    int total   = static_cast<int>(asteroid_size_t::COUNT);
+    int next    = std::clamp(current - steps, 0, total - 1);
+    return static_cast<asteroid_size_t>(next);
+}
+
+asteroid_size_t operator-(int steps, asteroid_size_t s) {
+    return s - steps;
+}
+
 enum class menu_options_t {
     START,
+    SETTINGS,
     QUIT
 };
 
@@ -48,7 +71,7 @@ struct Assets {
 
     Assets()
     : menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 150.f, NULL, 0)),
-      menu_option_font(LoadFontEx("../assets/cubic.ttf", 24.f, NULL, 0)) { };
+      menu_option_font(LoadFontEx("../assets/cubic.ttf", 48.f, NULL, 0)) { };
 
     ~Assets() {
         UnloadFont(menu_option_font);
@@ -65,28 +88,6 @@ struct Assets {
 };
 
 std::shared_ptr<Assets> assets = nullptr;
-
-asteroid_size_t operator+(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total = static_cast<int>(asteroid_size_t::COUNT);
-    int next = std::clamp(current + steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
-
-asteroid_size_t operator+(int steps, asteroid_size_t s) {
-    return s + steps;
-}
-
-asteroid_size_t operator-(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total = static_cast<int>(asteroid_size_t::COUNT);
-    int next = std::clamp(current - steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
-
-asteroid_size_t operator-(int steps, asteroid_size_t s) {
-    return s - steps;
-}
 
 inline constexpr float    particle_age  = 0.f;
 inline constexpr uint32_t particle_max  = 50;
