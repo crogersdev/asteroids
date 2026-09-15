@@ -5,8 +5,9 @@
 #include "../components.hpp"
 #include "../constants.hpp"
 #include "../entities.hpp"
+#include "../helpers/assets-mgr.hpp"
 #include "../helpers/game-state.hpp"
-#include "../helpers/helpers.hpp"
+#include "../helpers/math-stuff.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -120,37 +121,91 @@ inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
 
-inline void menu_draw_system(Registry& registry) {
-    std::string menu_title = "asteroids";
+inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
+    assets->game_start_animation_timer.current_time += GetFrameTime();
+
+    if (assets->game_start_animation_timer.current_time >= 4.0f) {
+        game_state.current_state = state_t::PLAYING;
+        assets->game_start_animation_timer.current_time = 0.f;
+        return;
+    }
+
+    BeginBlendMode(BLEND_ALPHA);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{ 0, 0, 0, 200 });
+
+    float localTimer = fmod(assets->game_start_animation_timer.current_time, 1.0f);
+    float scale;
+
+    if (localTimer < 0.8f) {
+        float animationProgress = localTimer / .8f;
+        scale = animationProgress * animationProgress;
+    } else {
+        scale = 1.f;
+    }
+
+    float fontSize = 128.f * scale;
+
+    std::string countdown;
+    if (assets->game_start_animation_timer.current_time < 1.0f) countdown = "3";
+    else if (assets->game_start_animation_timer.current_time < 2.0f) countdown = "2";
+    else if (assets->game_start_animation_timer.current_time < 3.0f) countdown = "1";
+    else countdown = "GO!";
+
+    Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), fontSize, 2);
+    Vector2 center = Vector2{ GetScreenWidth() / 2.f, GetScreenHeight() / 2.f };
+    Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
+
+    DrawTextEx(assets->menu_title_font, countdown.c_str(), pos, fontSize, 2, BLUE);
+    EndBlendMode();
+}
+
+inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
     float menu_title_font_size = 150.f;
     float menu_option_font_size = 48.f;
 
-    Vector2 title_bounding_box = MeasureTextEx(assets->menu_title_font, menu_title.c_str(), menu_title_font_size, 2.f); 
+    Vector2 title_bounding_box = MeasureTextEx(assets->menu_title_font, std::string(menu_title).c_str(), menu_title_font_size, 2.f); 
     float horizontal_margin = (SCREEN_WIDTH - title_bounding_box.x) / 2.f;
-    DrawTextEx(assets->menu_title_font, menu_title.c_str(), { horizontal_margin, 40.f }, menu_title_font_size, 2.f, CYAN);
+    DrawTextEx(assets->menu_title_font, std::string(menu_title).c_str(), { horizontal_margin, 40.f }, menu_title_font_size, 2.f, CYAN);
 
-    Color menu_option_color = CYAN;
-    // chris this is where we figure out a clean way to set the color based on which state 
+    auto current_selection = game_state.menu_selected_option;
+    Color menu_option_color;
 
+    current_selection == menu_options_t::START ? [&](){ menu_option_color = HOT_PINK; }() : [&](){ menu_option_color = CYAN; }();
     Vector2 menu_options_box = MeasureTextEx(assets->menu_option_font, "start", menu_option_font_size, 2.f);
     float vertical_margin = SCREEN_HEIGHT / 2.f;
     horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
-    DrawTextEx(assets->menu_option_font, "start",    { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
+    DrawTextEx(assets->menu_option_font, "start", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 
+    current_selection == menu_options_t::SETTINGS ? [&](){ menu_option_color = HOT_PINK; }() : [&](){ menu_option_color = CYAN; }();
     menu_options_box = MeasureTextEx(assets->menu_option_font, "settings", menu_option_font_size, 2.f);
     vertical_margin += menu_option_font_size + menu_option_font_size * .5f;
     horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
-    DrawTextEx(assets->menu_option_font, "settings", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
+    DrawTextEx(assets->menu_option_font, "settings", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 
+    current_selection == menu_options_t::QUIT ? [&](){ menu_option_color = HOT_PINK; }() : [&](){ menu_option_color = CYAN; }();
     menu_options_box = MeasureTextEx(assets->menu_option_font, "quit", menu_option_font_size, 2.f);
     vertical_margin += menu_option_font_size + menu_option_font_size * .5f;
     horizontal_margin = (SCREEN_WIDTH - menu_options_box.x) / 2.f;
-    DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, CYAN);
+    DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 }
 
-inline void menu_input_system(Registry& registry) {
-    if (IsKeyDown(KEY_UP)) { registry.game_state.nextMenuOption(registry.game_state.menu_selected_option); }
-    if (IsKeyDown(KEY_DOWN)) { registry.game_state.prevMenuOption(registry.game_state.menu_selected_option); }
+inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
+    if (IsKeyPressed(KEY_DOWN)) { game_state.nextMenuOption(game_state.menu_selected_option); }
+    if (IsKeyPressed(KEY_UP))   { game_state.prevMenuOption(game_state.menu_selected_option); }
+    
+    if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+        switch (game_state.menu_selected_option) {
+        case menu_options_t::START:
+            game_state.current_state = state_t::NEW_GAME;
+            break;
+        case menu_options_t::SETTINGS:
+            game_state.current_state = state_t::UPDATE_SETTINGS;
+            break;
+        case menu_options_t::QUIT:
+            game_state.current_state = state_t::QUITTING;
+            break;
+        }
+    }
 }
 
 inline void movement_update_system(Registry& registry) {
@@ -220,7 +275,7 @@ inline void movement_update_system(Registry& registry) {
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
 }
-inline void player_collision_system(Registry& registry) {
+inline void player_collision_system(Registry& registry, GameState game_state) {
     for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         auto& ship_transform = registry.get<Transform>(ship_id);
@@ -249,12 +304,11 @@ inline void player_collision_system(Registry& registry) {
             colliding_objects.insert(p);
 
             if (ship_shield.energy_remaining <= sz * asteroid_damage) {
-                std::cout << "bro i think you dead.\n";
-                registry.game_state.lives--;
-                if (registry.game_state.lives > 0) {
-                    registry.game_state.current_state = state_t::DYING;
+                game_state.lives--;
+                if (game_state.lives > 0) {
+                    game_state.current_state = state_t::DYING;
                 } else {
-                    registry.game_state.current_state = state_t::GAME_OVER;
+                    game_state.current_state = state_t::GAME_OVER;
                 }
             }
 
@@ -443,3 +497,4 @@ inline void weapon_system(Registry& registry) {
 }
 
 } // end namespace
+

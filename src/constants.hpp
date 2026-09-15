@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <string_view>
 #include <raylib.h>
 
 namespace crogersdev {
@@ -21,87 +22,23 @@ inline constexpr float    asteroid_max_speed  = 200.f;
 inline constexpr float    asteroid_min_speed  = 100.f;
 inline constexpr uint32_t asteroid_radius     = 12;
 
-enum class asteroid_size_t {
-    TINY   = 1,
-    SMALL  = 2,
-    MEDIUM = 3,
-    LARGE  = 4,
-    COUNT  = 4
-};
+inline constexpr std::string_view menu_title  = "asteroids";
 
-asteroid_size_t operator+(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total = static_cast<int>(asteroid_size_t::COUNT);
-    int next = std::clamp(current + steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
+inline constexpr float    particle_age        = 0.f;
+inline constexpr uint32_t particle_max        = 50;
+inline constexpr float    particle_drag       = 0.999f;
 
-asteroid_size_t operator+(int steps, asteroid_size_t s) {
-    return s + steps;
-}
-
-asteroid_size_t operator-(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total   = static_cast<int>(asteroid_size_t::COUNT);
-    int next    = std::clamp(current - steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
-
-asteroid_size_t operator-(int steps, asteroid_size_t s) {
-    return s - steps;
-}
-
-enum class menu_options_t {
-    START,
-    SETTINGS,
-    QUIT
-};
-
-enum class state_t {
-    MENU,
-    PLAYING,
-    PAUSED,
-    DYING,
-    GAME_OVER
-};
-
-struct Assets {
-    Font menu_title_font;
-    Font menu_option_font;
-
-    Assets()
-    : menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 150.f, NULL, 0)),
-      menu_option_font(LoadFontEx("../assets/cubic.ttf", 48.f, NULL, 0)) { };
-
-    ~Assets() {
-        UnloadFont(menu_option_font);
-        UnloadFont(menu_title_font);
-    }
-
-    // NOTE: explicitly prevent copy ctor; raylib's underlying Font struct
-    //       uses a Texture2D object which manually allocates memory.
-    //       if we don't prevent copy ctor's then we'll have multiple
-    //       objects pointing at the same spot in memory and have double
-    //       free errors on destruction.
-    Assets(const Assets&) = delete;
-    Assets operator=(const Assets&) = delete;
-};
-
-std::shared_ptr<Assets> assets = nullptr;
-
-inline constexpr float    particle_age  = 0.f;
-inline constexpr uint32_t particle_max  = 50;
-inline constexpr float    particle_drag = 0.999f;
-
-inline constexpr uint32_t shield_radius     = 20;
-inline constexpr uint32_t shield_thickness  = 3;
-inline constexpr float    shield_max_energy = 99.f;
+inline constexpr uint32_t shield_radius       = 20;
+inline constexpr uint32_t shield_thickness    = 3;
+inline constexpr float    shield_max_energy   = 99.f;
 
 inline constexpr float    player_acceleration = 750.f;
 inline constexpr float    player_drag_coeff   = .995;
 inline constexpr uint32_t player_max_ammo     = 999;
 inline constexpr float    player_max_speed    = 425.f;
 inline constexpr float    player_turn_speed   = .08f;
+
+inline constexpr float    timer_game_start_animation_max = 3.f;
 
 inline constexpr float    weapon_cooldown_period = 1.5f;
 

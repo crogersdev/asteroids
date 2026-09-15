@@ -2,7 +2,8 @@
 
 #include "../constants.hpp"
 #include "../components.hpp"
-#include "../helpers/helpers.hpp"
+#include "../helpers/asteroid-info.hpp"
+#include "../helpers/math-stuff.hpp"
 
 #include <vector>
 #include <raylib.h>
@@ -39,4 +40,4 @@ inline std::vector<Line> generate_asteroid_shape(asteroid_size_t size, uint32_t 
     return asteroid_shape;
 }
 
-}
+} // end namespace

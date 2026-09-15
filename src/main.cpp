@@ -1,3 +1,4 @@
+#include "helpers/assets-mgr.hpp"
 #include "systems/systems.hpp"
 #include "systems/game-init.hpp"
 
@@ -13,11 +14,11 @@ int main(void) {
     }
     SetTargetFPS(60);
 
-    assets = std::make_shared<Assets>(); 
+    std::shared_ptr<Assets> assets = std::make_shared<Assets>(); 
     Registry registry = Registry();
 
-    registry.game_state = { 5, 0, 2 };
-    game_init(registry);
+    GameState game_state = { 5, 0, 2 };
+    game_init(registry, game_state);
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
@@ -27,9 +28,9 @@ int main(void) {
 
             if (DEBUG_GAME) { }
 
-            if (registry.game_state.current_state == state_t::MENU) {
-                menu_draw_system(registry);
-                menu_input_system(registry);
+            if (game_state.current_state == state_t::MENU) {
+                menu_draw_system(registry, assets, game_state);
+                menu_input_system(registry, assets, game_state);
             }
             /*
             if (registry.game_state.current_state == state_t::PAUSED) {
@@ -39,10 +40,13 @@ int main(void) {
 
             }
             */
-            if (registry.game_state.current_state == state_t::PLAYING) {
+            if (game_state.current_state == state_t::NEW_GAME) {
+                draw_game_start_modal(registry, assets, game_state);
+            }
+            if (game_state.current_state == state_t::PLAYING) {
                 player_input_system(registry);
                 bullet_collision_system(registry);
-                player_collision_system(registry);
+                player_collision_system(registry, game_state);
                 movement_update_system(registry);
                 weapon_system(registry);
                 shield_system(registry);

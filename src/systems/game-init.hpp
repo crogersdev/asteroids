@@ -4,14 +4,14 @@
 #include "../constants.hpp"
 #include "../components.hpp"
 #include "../entities.hpp"
-#include "../helpers/helpers.hpp"
+#include "../helpers/math-stuff.hpp"
 
 #include <cmath>
 #include <raylib.h>
 
 namespace crogersdev {
 
-inline void game_init(Registry& registry) {
+inline void game_init(Registry& registry, GameState game_state) {
     const float game_screen_x = GetScreenWidth();
     const float game_screen_y = GetScreenHeight();
     const Vector2 game_screen = Vector2{ game_screen_x, game_screen_y };
@@ -20,7 +20,6 @@ inline void game_init(Registry& registry) {
     Entity player = registry.create();
     registry.add(player, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
     registry.add(player, PlayerInput{ false, false, false, false });
-    registry.add(player, MenuInput{ menu_options_t::START });
     registry.add(player, Weapon{
         player_max_ammo,
         0.f,
@@ -45,7 +44,7 @@ inline void game_init(Registry& registry) {
     const Vector2 one_third = { game_screen.x / 3.f, game_screen.y / 3.f };
     const Vector2 two_thirds = { 2.f*game_screen.x / 3.f, 2.f*game_screen.y / 3.f };
 
-    for (uint8_t i = 0; i < registry.game_state.starting_asteroid_count; ++i) {
+    for (uint8_t i = 0; i < game_state.starting_asteroid_count; ++i) {
         float a_x = my_rng(0.f, two_thirds.x, Dist::Uniform);
         if (a_x > one_third.x) a_x += one_third.x;
 
@@ -60,9 +59,6 @@ inline void game_init(Registry& registry) {
         registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 1.f, 0.f });
         registry.add(asteroids.at(i), AsteroidShape{ generate_asteroid_shape(asteroid_size_t::LARGE, asteroid_radius, RED, 1.25f) });
     }
-
-    Entity explosion_sound = registry.create();
-    registry.add(explosion_sound, Sound{ });
 }
 
 } // end namespace
