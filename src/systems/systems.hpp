@@ -121,7 +121,7 @@ inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
 
-inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
+inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
     assets->game_start_animation_timer.current_time += GetFrameTime();
 
     if (assets->game_start_animation_timer.current_time >= 4.0f) {
@@ -131,6 +131,7 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     }
 
     BeginBlendMode(BLEND_ALPHA);
+    BeginShaderMode(assets->title_font_shader);    
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{ 0, 0, 0, 200 });
 
     float localTimer = fmod(assets->game_start_animation_timer.current_time, 1.0f);
@@ -143,23 +144,25 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
         scale = 1.f;
     }
 
-    float fontSize = 128.f * scale;
+    Color c = INDIGO;
 
     std::string countdown;
     if (assets->game_start_animation_timer.current_time < 1.0f) countdown = "3";
     else if (assets->game_start_animation_timer.current_time < 2.0f) countdown = "2";
-    else if (assets->game_start_animation_timer.current_time < 3.0f) countdown = "1";
+    else if (assets->game_start_animation_timer.current_time < 3.0f) { countdown = "1"; c = HOT_PINK; }
     else countdown = "GO!";
 
+    float fontSize = assets->menu_title_font.baseSize * scale;
     Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), fontSize, 2);
     Vector2 center = Vector2{ GetScreenWidth() / 2.f, GetScreenHeight() / 2.f };
     Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
 
-    DrawTextEx(assets->menu_title_font, countdown.c_str(), pos, fontSize, 2, BLUE);
+    DrawTextEx(assets->menu_title_font, countdown.c_str(), pos, assets->menu_title_font.baseSize * scale, 2.0f, c);
+    EndShaderMode();
     EndBlendMode();
 }
 
-inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
+inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
     float menu_title_font_size = 150.f;
     float menu_option_font_size = 48.f;
 
@@ -189,10 +192,10 @@ inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets,
     DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 }
 
-inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets, GameState game_state) {
+inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
     if (IsKeyPressed(KEY_DOWN)) { game_state.nextMenuOption(game_state.menu_selected_option); }
     if (IsKeyPressed(KEY_UP))   { game_state.prevMenuOption(game_state.menu_selected_option); }
-    
+
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
         switch (game_state.menu_selected_option) {
         case menu_options_t::START:
@@ -275,7 +278,7 @@ inline void movement_update_system(Registry& registry) {
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
 }
-inline void player_collision_system(Registry& registry, GameState game_state) {
+inline void player_collision_system(Registry& registry, GameState& game_state) {
     for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         auto& ship_transform = registry.get<Transform>(ship_id);

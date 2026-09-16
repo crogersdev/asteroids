@@ -1,5 +1,6 @@
 #pragma once
  
+#include <iostream>
 #include <set>
 #include <utility>
 
@@ -12,6 +13,15 @@ enum class menu_options_t {
     SETTINGS,
     QUIT
 };
+
+std::ostream& operator<<(std::ostream& o, const menu_options_t m) {
+    switch(m) {
+        case menu_options_t::SETTINGS: o << "SETTINGS"; break;
+        case menu_options_t::START:    o << "START";    break;
+        case menu_options_t::QUIT:     o << "QUIT";     break;
+    }
+    return o;
+}
 
 enum class state_t {
     DYING,

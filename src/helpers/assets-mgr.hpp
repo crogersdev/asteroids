@@ -15,19 +15,27 @@ struct Timer {
 };
 
 struct Assets {
-    Timer game_start_animation_timer;
-
     Font menu_title_font;
     Font menu_option_font;
+    Shader title_font_shader;
+    Timer game_start_animation_timer;
 
     Assets()
     : game_start_animation_timer(0.f, timer_game_start_animation_max),
-      menu_title_font(LoadFontEx("../../assets/BadMofo.ttf", 150.f, nullptr, 0)),
-      menu_option_font(LoadFontEx("../../assets/cubic.ttf", 48.f, nullptr, 0)) { };
+      title_font_shader(LoadShader(0, "resources/shaders/glsl330/sdf.fs")),
+      // NOTE: the relative path here is relative to where we build
+      //       and not where the file lives relative to this file's
+      //       location on disk
+      menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 512.f, nullptr, 0)),
+      menu_option_font(LoadFontEx("../assets/cubic.ttf", 48.f, nullptr, 0))
+    {
+        SetTextureFilter(menu_title_font.texture, TEXTURE_FILTER_BILINEAR);
+    };
 
     ~Assets() {
         UnloadFont(menu_option_font);
         UnloadFont(menu_title_font);
+        UnloadShader(title_font_shader);
     }
 
     // NOTE: explicitly prevent copy ctor; raylib's underlying Font struct
