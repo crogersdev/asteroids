@@ -8,9 +8,11 @@
 #include "../helpers/assets-mgr.hpp"
 #include "../helpers/game-state.hpp"
 #include "../helpers/math-stuff.hpp"
+#include "../helpers/physics.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 #include <raylib.h>
 #include <raymath.h>
 
@@ -134,11 +136,11 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     BeginShaderMode(assets->title_font_shader);    
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{ 0, 0, 0, 200 });
 
-    float localTimer = fmod(assets->game_start_animation_timer.current_time, 1.0f);
+    float local_timer = fmod(assets->game_start_animation_timer.current_time, 1.0f);
     float scale;
 
-    if (localTimer < 0.8f) {
-        float animationProgress = localTimer / .8f;
+    if (local_timer < 0.8f) {
+        float animationProgress = local_timer / .8f;
         scale = animationProgress * animationProgress;
     } else {
         scale = 1.f;
@@ -152,8 +154,8 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     else if (assets->game_start_animation_timer.current_time < 3.0f) { countdown = "1"; c = HOT_PINK; }
     else countdown = "GO!";
 
-    float fontSize = assets->menu_title_font.baseSize * scale;
-    Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), fontSize, 2);
+    float font_size = assets->menu_title_font.baseSize * scale;
+    Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), font_size, 2);
     Vector2 center = Vector2{ GetScreenWidth() / 2.f, GetScreenHeight() / 2.f };
     Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
 
@@ -315,20 +317,18 @@ inline void player_collision_system(Registry& registry, GameState& game_state) {
                 }
             }
 
-            ship_shield.energy_remaining -= sz * asteroid_damage;
-
-            Vector2 n = Vector2Normalize(Vector2Subtract(ship_transform.position, asteroid_transform.position));
-            Vector2 a_v = asteroid_transform.velocity;
-            Vector2 new_asteroid_velocity = Vector2Subtract(a_v, Vector2Scale(n, 2.f * Vector2DotProduct(n, a_v)));
-            Vector2 s_v = ship_transform.velocity;
-            Vector2 new_ship_velocity = Vector2Subtract(s_v, Vector2Scale(n, 2.f * Vector2DotProduct(n, s_v)));
-
             if (asteroid_size.size == asteroid_size_t::LARGE) {
-                asteroid_transform.velocity = Vector2Add(new_asteroid_velocity, Vector2Scale(new_asteroid_velocity, .25f));
-                ship_transform.velocity = Vector2Add(new_ship_velocity, Vector2Scale(new_ship_velocity, 2.f));
+                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
+                ship_shield.energy_remaining -= sz * asteroid_damage;
             } else if (asteroid_size.size == asteroid_size_t::MEDIUM) {
+                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
+                ship_shield.energy_remaining -= sz * asteroid_damage / 2.f;
             } else if (asteroid_size.size == asteroid_size_t::SMALL) {
+                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 8.f);
+                ship_shield.energy_remaining -= sz * asteroid_damage / 4.f;
             } else if (asteroid_size.size == asteroid_size_t::TINY) {
+                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 1.f);
+                ship_shield.energy_remaining -= sz * asteroid_damage / 10.f;
             }
         } // end for each asteroid
     } // end for each player
@@ -398,7 +398,7 @@ inline void render_system(Registry& registry) {
         }
 
         Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
-        DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
+        // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {
@@ -414,7 +414,7 @@ inline void render_system(Registry& registry) {
                 edge.color);
         }
         Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
-        DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
+        // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
     for (Entity bullet_id : registry.view<Bullet, Transform>()) {
@@ -500,4 +500,3 @@ inline void weapon_system(Registry& registry) {
 }
 
 } // end namespace
-
