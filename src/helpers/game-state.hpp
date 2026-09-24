@@ -1,5 +1,7 @@
 #pragma once
  
+#include "../constants.hpp"
+
 #include <iostream>
 #include <set>
 #include <utility>
@@ -14,18 +16,11 @@ enum class menu_options_t {
     QUIT
 };
 
-std::ostream& operator<<(std::ostream& o, const menu_options_t m) {
-    switch(m) {
-        case menu_options_t::SETTINGS: o << "SETTINGS"; break;
-        case menu_options_t::START:    o << "START";    break;
-        case menu_options_t::QUIT:     o << "QUIT";     break;
-    }
-    return o;
-}
-
 enum class state_t {
     DYING,
     GAME_OVER,
+    LEVEL_CLEAR,
+    LEVEL_START,
     MENU,
     NEW_GAME, 
     PLAYING,
@@ -35,26 +30,29 @@ enum class state_t {
 };
 
 struct GameState {
+    int level;
     int lives;
     int score;
-    int starting_asteroid_count;
+    int remaining_asteroids;
+
+    Entity player_id;
 
     menu_options_t menu_selected_option;
     state_t current_state;
 
-    GameState()
-    : lives(5),
-      score(0),
-      starting_asteroid_count(4),
+    GameState(Entity pid)
+    : lives{},
+      score{},
+      remaining_asteroids{},
+      level{},
+      player_id{pid},
       menu_selected_option(menu_options_t::START),
-      current_state(state_t::MENU) { };
-
-    GameState(int l, int s, int a)
-    : lives(l),
-      score(s),
-      starting_asteroid_count(a),
-      menu_selected_option(menu_options_t::START),
-      current_state(state_t::MENU) { };
+      current_state(state_t::MENU) {
+        lives = 5;
+        level = 0;
+        score = 0;
+        remaining_asteroids = asteroids_per_level[0];
+      };
 
     inline void nextMenuOption(menu_options_t& current) {
         switch (current) {

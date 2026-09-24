@@ -12,13 +12,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <tuple>
 #include <raylib.h>
 #include <raymath.h>
 
 namespace crogersdev {
 
-inline void bullet_collision_system(Registry& registry) {
+inline void bullet_collision_system(Registry& registry, GameState& game_state) {
     std::vector<Entity> dead_asteroids;
     std::vector<Entity> dead_bullets;
     std::vector<Entity> dead_particles;
@@ -79,6 +80,7 @@ inline void bullet_collision_system(Registry& registry) {
                         registry.add(
                             new_asteroid,
                             AsteroidShape{ generate_asteroid_shape(asteroid_size.size-1, asteroid_size.radius, RED, 1.25f) });
+                        game_state.remaining_asteroids++;
                     }
                 }
 
@@ -102,6 +104,7 @@ inline void bullet_collision_system(Registry& registry) {
         registry.destroy(b);
     }
     for (auto a : dead_asteroids) {
+        game_state.remaining_asteroids--;
         registry.destroy(a);
     }
     for (auto p : dead_particles) {
@@ -127,14 +130,14 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     assets->game_start_animation_timer.current_time += GetFrameTime();
 
     if (assets->game_start_animation_timer.current_time >= 4.0f) {
-        game_state.current_state = state_t::PLAYING;
+        game_state.current_state = state_t::LEVEL_START;
         assets->game_start_animation_timer.current_time = 0.f;
         return;
     }
 
     BeginBlendMode(BLEND_ALPHA);
     BeginShaderMode(assets->title_font_shader);    
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Color{ 0, 0, 0, 200 });
+    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{ 0, 0, 0, 200 });
 
     float local_timer = fmod(assets->game_start_animation_timer.current_time, 1.0f);
     float scale;
@@ -156,12 +159,47 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
 
     float font_size = assets->menu_title_font.baseSize * scale;
     Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), font_size, 2);
-    Vector2 center = Vector2{ GetScreenWidth() / 2.f, GetScreenHeight() / 2.f };
+    Vector2 center = Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
     Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
 
     DrawTextEx(assets->menu_title_font, countdown.c_str(), pos, assets->menu_title_font.baseSize * scale, 2.0f, c);
     EndShaderMode();
     EndBlendMode();
+}
+
+inline void level_clear_system(Registry& registry, GameState& game_state) {
+
+}
+
+inline void level_init_system(Registry& registry, GameState& game_state) {
+    const Vector2 one_third          = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
+    const Vector2 two_thirds         = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
+
+    std::vector<Entity> asteroids;
+    for (uint8_t i = 0; i < game_state.remaining_asteroids; ++i) {
+        float a_x = my_rng(0.f, two_thirds.x, Dist::Uniform);
+        if (a_x > one_third.x) a_x += one_third.x;
+
+        float a_y = my_rng(0.f, two_thirds.y, Dist::Uniform);
+        if (a_y > one_third.y) a_y += one_third.y;
+
+        asteroids.push_back(registry.create());
+        float theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
+        float dir_x = cos(theta);
+        float dir_y = sin(theta);
+        registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size_t::LARGE });
+        registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 1.f, 0.f });
+        registry.add(asteroids.at(i), AsteroidShape{ generate_asteroid_shape(asteroid_size_t::LARGE, asteroid_radius, RED, 1.25f) });
+    }
+
+    game_state.current_state = state_t::PLAYING;
+}
+
+inline void level_progress_system(Registry& registry, GameState& game_state) {
+    float corner = .1f;
+    Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, SCREEN_HEIGHT - SCREEN_HEIGHT * corner };
+    std::string remaining = std::to_string(game_state.remaining_asteroids);
+    DrawTextEx(GetFontDefault(), remaining.c_str(), asteroids_remaining_hud, 32.f, 1.f, MY_GOLD);
 }
 
 inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
@@ -214,46 +252,45 @@ inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets
 }
 
 inline void movement_update_system(Registry& registry) {
-    auto w = GetScreenWidth();
-    auto h = GetScreenHeight();
+    auto w = SCREEN_WIDTH;
+    auto h = SCREEN_HEIGHT;
 
-    for (Entity e : registry.view<Transform, PlayerInput, PolygonShip>()) {
-        auto& input = registry.get<PlayerInput>(e);
-        auto& ship = registry.get<PolygonShip>(e);
-        auto& player_transform = registry.get<Transform>(e);
+    Entity e = registry.view<Transform, PlayerInput, PolygonShip>().front();
+    auto& input = registry.get<PlayerInput>(e);
+    auto& ship = registry.get<PolygonShip>(e);
+    auto& player_transform = registry.get<Transform>(e);
 
-        if (input.rotate_left || input.rotate_right) {
-            Vector2 new_start = {}, new_end = {}, new_orientation = {};
-            float t = player_transform.rotation_speed;
-            if (input.rotate_left) { t *= -1.f; }
+    if (input.rotate_left || input.rotate_right) {
+        Vector2 new_start = {}, new_end = {}, new_orientation = {};
+        float t = player_transform.rotation_speed;
+        if (input.rotate_left) { t *= -1.f; }
 
-            for (auto& ship_edge : ship.lines) {
-                new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
-                new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
+        for (auto& ship_edge : ship.lines) {
+            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
+            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
 
-                new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
-                new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
+            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
+            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
 
-                ship_edge.start = new_start;
-                ship_edge.end   = new_end;
-            }
-
-            new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
-            new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
-
-            ship.orientation = new_orientation;
+            ship_edge.start = new_start;
+            ship_edge.end   = new_end;
         }
 
-        if (input.thrust) {
-            player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
-            player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
+        new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
+        new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
 
-            auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
-            if (magnitude > ship.max_speed) {
-                auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
-                player_transform.velocity.x = cos(theta) * ship.max_speed;
-                player_transform.velocity.y = sin(theta) * ship.max_speed;
-            }
+        ship.orientation = new_orientation;
+    }
+
+    if (input.thrust) {
+        player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
+        player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
+
+        auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
+        if (magnitude > ship.max_speed) {
+            auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
+            player_transform.velocity.x = cos(theta) * ship.max_speed;
+            player_transform.velocity.y = sin(theta) * ship.max_speed;
         }
     }
 
@@ -281,69 +318,67 @@ inline void movement_update_system(Registry& registry) {
     }
 }
 inline void player_collision_system(Registry& registry, GameState& game_state) {
-    for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
-        const auto& ship = registry.get<PolygonShip>(ship_id);
-        auto& ship_transform = registry.get<Transform>(ship_id);
+    Entity ship_id = registry.view<PolygonShip, Shield, Transform>().front();
+    const auto& ship = registry.get<PolygonShip>(ship_id);
+    auto& ship_transform = registry.get<Transform>(ship_id);
 
-        auto& ship_shield = registry.get<Shield>(ship_id);
+    auto& ship_shield = registry.get<Shield>(ship_id);
 
-        for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
-            const auto& asteroid_size = registry.get<Size>(asteroid_id);
-            const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
+    for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
+        const auto& asteroid_size = registry.get<Size>(asteroid_id);
+        const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
 
-            auto& asteroid_transform = registry.get<Transform>(asteroid_id);
+        auto& asteroid_transform = registry.get<Transform>(asteroid_id);
 
-            float asteroid_ship_distance_val = Vector2DistanceSqr(ship_transform.position, asteroid_transform.position);
-            auto asteroid_collision_radius = asteroid_size.radius * sz;
-            auto ship_shield_collision_radius = shield_radius + shield_thickness;
+        float asteroid_ship_distance_val = Vector2DistanceSqr(ship_transform.position, asteroid_transform.position);
+        auto asteroid_collision_radius = asteroid_size.radius * sz;
+        auto ship_shield_collision_radius = shield_radius + shield_thickness;
 
-            if (asteroid_ship_distance_val > pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
-                colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
-                continue;
+        if (asteroid_ship_distance_val > pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
+            colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
+            continue;
+        }
+
+        auto p = std::make_pair(ship_id, asteroid_id);
+
+        if (colliding_objects.count(p)) { continue; }  // if we're already colliding during this frame, skip.
+
+        colliding_objects.insert(p);
+
+        if (ship_shield.energy_remaining <= sz * asteroid_damage) {
+            game_state.lives--;
+            if (game_state.lives > 0) {
+                game_state.current_state = state_t::DYING;
+            } else {
+                game_state.current_state = state_t::GAME_OVER;
             }
+        }
 
-            auto p = std::make_pair(ship_id, asteroid_id);
-
-            if (colliding_objects.count(p)) { continue; }  // if we're already colliding during this frame, skip.
-
-            colliding_objects.insert(p);
-
-            if (ship_shield.energy_remaining <= sz * asteroid_damage) {
-                game_state.lives--;
-                if (game_state.lives > 0) {
-                    game_state.current_state = state_t::DYING;
-                } else {
-                    game_state.current_state = state_t::GAME_OVER;
-                }
-            }
-
-            if (asteroid_size.size == asteroid_size_t::LARGE) {
-                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
-                ship_shield.energy_remaining -= sz * asteroid_damage;
-            } else if (asteroid_size.size == asteroid_size_t::MEDIUM) {
-                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
-                ship_shield.energy_remaining -= sz * asteroid_damage / 2.f;
-            } else if (asteroid_size.size == asteroid_size_t::SMALL) {
-                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 8.f);
-                ship_shield.energy_remaining -= sz * asteroid_damage / 4.f;
-            } else if (asteroid_size.size == asteroid_size_t::TINY) {
-                std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 1.f);
-                ship_shield.energy_remaining -= sz * asteroid_damage / 10.f;
-            }
-        } // end for each asteroid
-    } // end for each player
+        if (asteroid_size.size == asteroid_size_t::LARGE) {
+            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
+            ship_shield.energy_remaining -= sz * asteroid_damage;
+        } else if (asteroid_size.size == asteroid_size_t::MEDIUM) {
+            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
+            ship_shield.energy_remaining -= sz * asteroid_damage / 2.f;
+        } else if (asteroid_size.size == asteroid_size_t::SMALL) {
+            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 8.f);
+            ship_shield.energy_remaining -= sz * asteroid_damage / 4.f;
+        } else if (asteroid_size.size == asteroid_size_t::TINY) {
+            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 1.f);
+            ship_shield.energy_remaining -= sz * asteroid_damage / 10.f;
+        }
+    } // end for each asteroid
 }
 
 inline void player_input_system(Registry& registry) {
-    for (Entity player_id : registry.view<PlayerInput>()) {
-        auto& player = registry.get<PlayerInput>(player_id);
+    Entity player_id = registry.view<PlayerInput>().front();
+    auto& player = registry.get<PlayerInput>(player_id);
 
-        if (IsKeyDown(KEY_W))        { player.thrust = true; }
-        if (IsKeyDown(KEY_A))        { player.rotate_left = true; }
-        if (IsKeyDown(KEY_S))        { }
-        if (IsKeyDown(KEY_D))        { player.rotate_right = true; }
-        if (IsKeyPressed(KEY_SPACE)) { player.shoot = true; }
-    }
+    if (IsKeyDown(KEY_W))        { player.thrust = true; }
+    if (IsKeyDown(KEY_A))        { player.rotate_left = true; }
+    if (IsKeyDown(KEY_S))        { }
+    if (IsKeyDown(KEY_D))        { player.rotate_right = true; }
+    if (IsKeyPressed(KEY_SPACE)) { player.shoot = true; }
 }
 
 inline void sound_system(Registry& registry) {
@@ -377,29 +412,28 @@ inline void render_system(Registry& registry) {
     //       and draw all our stuff.  that means we can just straight up
     //       call DrawLineEx without any problems or concerns
 
-    for (Entity ship_id : registry.view<PolygonShip, Shield, Transform>()) {
-        const auto& ship = registry.get<PolygonShip>(ship_id);
-        const auto& transform = registry.get<Transform>(ship_id);
+    Entity ship_id = registry.view<PolygonShip, Shield, Transform>().front();
+    const auto& ship = registry.get<PolygonShip>(ship_id);
+    const auto& transform = registry.get<Transform>(ship_id);
 
-        Vector2 pos = transform.position;
-        auto& shield = registry.get<Shield>(ship_id);
-        if (shield.energy_remaining > 0) {
-            DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
-        }
-
-        Vector2 start = {}, end = {};
-        for (const auto& ship_edge : ship.lines) {
-            start.x = ship_edge.start.x + pos.x;
-            start.y = ship_edge.start.y + pos.y;
-            end.x = ship_edge.end.x + pos.x;
-            end.y = ship_edge.end.y + pos.y;
-
-            DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
-        }
-
-        Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
-        // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
+    Vector2 pos = transform.position;
+    auto& shield = registry.get<Shield>(ship_id);
+    if (shield.energy_remaining > 0) {
+        DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
     }
+
+    Vector2 start = {}, end = {};
+    for (const auto& ship_edge : ship.lines) {
+        start.x = ship_edge.start.x + pos.x;
+        start.y = ship_edge.start.y + pos.y;
+        end.x = ship_edge.end.x + pos.x;
+        end.y = ship_edge.end.y + pos.y;
+
+        DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
+    }
+
+    Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
+    // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {
         const auto& asteroid_shape = registry.get<AsteroidShape>(asteroid_id);

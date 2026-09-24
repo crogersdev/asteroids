@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <algorithm>
 #include <cstdint>
 #include <memory>
@@ -15,7 +16,10 @@ using Entity = uint16_t;
 inline constexpr bool DEBUG_GAME = true;
 inline constexpr int  SCREEN_WIDTH = 800;
 inline constexpr int  SCREEN_HEIGHT = 600;
+inline constexpr Vector2 SCREEN = { SCREEN_WIDTH, SCREEN_HEIGHT };
+inline constexpr Vector2 SCREEN_CENTER = { SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
 
+inline constexpr std::array<int, 11> asteroids_per_level = { 1, 3, 5, 5, 5, 6, 6, 6, 6, 8, 10 };
 inline constexpr float    asteroid_init_speed = 125.f;
 inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr float    asteroid_max_speed  = 200.f;
