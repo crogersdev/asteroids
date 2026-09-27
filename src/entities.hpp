@@ -12,11 +12,11 @@
 namespace crogersdev {
 
 class Registry {
-
-private:
+public:
     template <typename ...Ts>
     struct Exclude {};
 
+private:
     template <typename T>
     struct is_exclude_tag {
         static constexpr bool value = false;

@@ -19,12 +19,12 @@
 
 namespace crogersdev {
 
-inline void bullet_collision_system(Registry& registry, GameState& game_state) {
+inline void bullet_collision(Registry& registry, GameState& game_state) {
     std::vector<Entity> dead_asteroids;
     std::vector<Entity> dead_bullets;
     std::vector<Entity> dead_particles;
 
-    // TODO: If you're going to make bullets long lines, you'll need
+    // TODO: If you're goi!g to make bullets long lines, you'll need
     // to track collision through leading edge or possibly all points along the line
     // in order to preserve things like an asteroid crossing that line
     for (Entity bullet_id : registry.view<Bullet, Transform>()) {
@@ -112,16 +112,6 @@ inline void bullet_collision_system(Registry& registry, GameState& game_state) {
     }
 }
 
-inline void clear_player_inputs(Registry& registry) {
-    for (Entity player_id : registry.view<PlayerInput>()) {
-        auto& player = registry.get<PlayerInput>(player_id);
-        player.thrust = false;
-        player.shoot = false;
-        player.rotate_left = false;
-        player.rotate_right = false;
-    }
-}
-
 inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
@@ -167,11 +157,11 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     EndBlendMode();
 }
 
-inline void level_clear_system(Registry& registry, GameState& game_state) {
+inline void clear_level(Registry& registry, GameState& game_state) {
 
 }
 
-inline void level_init_system(Registry& registry, GameState& game_state) {
+inline void level_init(Registry& registry, GameState& game_state) {
     const Vector2 one_third          = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
     const Vector2 two_thirds         = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
@@ -195,14 +185,14 @@ inline void level_init_system(Registry& registry, GameState& game_state) {
     game_state.current_state = state_t::PLAYING;
 }
 
-inline void level_progress_system(Registry& registry, GameState& game_state) {
+inline void level_progress(Registry& registry, GameState& game_state) {
     float corner = .1f;
     Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, SCREEN_HEIGHT - SCREEN_HEIGHT * corner };
     std::string remaining = std::to_string(game_state.remaining_asteroids);
     DrawTextEx(GetFontDefault(), remaining.c_str(), asteroids_remaining_hud, 32.f, 1.f, MY_GOLD);
 }
 
-inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
+inline void menu_draw(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
     float menu_title_font_size = 150.f;
     float menu_option_font_size = 48.f;
 
@@ -232,7 +222,7 @@ inline void menu_draw_system(Registry& registry, std::shared_ptr<Assets> assets,
     DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 }
 
-inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
+inline void menu_input(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
     if (IsKeyPressed(KEY_DOWN)) { game_state.nextMenuOption(game_state.menu_selected_option); }
     if (IsKeyPressed(KEY_UP))   { game_state.prevMenuOption(game_state.menu_selected_option); }
 
@@ -251,50 +241,11 @@ inline void menu_input_system(Registry& registry, std::shared_ptr<Assets> assets
     }
 }
 
-inline void movement_update_system(Registry& registry) {
+inline void movement_update(Registry& registry) {
     auto w = SCREEN_WIDTH;
     auto h = SCREEN_HEIGHT;
 
-    Entity e = registry.view<Transform, PlayerInput, PolygonShip>().front();
-    auto& input = registry.get<PlayerInput>(e);
-    auto& ship = registry.get<PolygonShip>(e);
-    auto& player_transform = registry.get<Transform>(e);
-
-    if (input.rotate_left || input.rotate_right) {
-        Vector2 new_start = {}, new_end = {}, new_orientation = {};
-        float t = player_transform.rotation_speed;
-        if (input.rotate_left) { t *= -1.f; }
-
-        for (auto& ship_edge : ship.lines) {
-            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
-            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
-
-            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
-            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
-
-            ship_edge.start = new_start;
-            ship_edge.end   = new_end;
-        }
-
-        new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
-        new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
-
-        ship.orientation = new_orientation;
-    }
-
-    if (input.thrust) {
-        player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
-        player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
-
-        auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
-        if (magnitude > ship.max_speed) {
-            auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
-            player_transform.velocity.x = cos(theta) * ship.max_speed;
-            player_transform.velocity.y = sin(theta) * ship.max_speed;
-        }
-    }
-
-    for (Entity e : registry.view<Transform>()) {
+    for (Entity e : registry.view<Transform, Registry::Exclude<Dead>>()) {
         auto& transform = registry.get<Transform>(e);
 
         const Vector2 dt_offset = { transform.velocity.x * transform.drag * GetFrameTime(),
@@ -317,12 +268,11 @@ inline void movement_update_system(Registry& registry) {
         transform.position.y = fmod(fmod(transform.position.y, h) + h, h);
     }
 }
-inline void player_collision_system(Registry& registry, GameState& game_state) {
-    Entity ship_id = registry.view<PolygonShip, Shield, Transform>().front();
-    const auto& ship = registry.get<PolygonShip>(ship_id);
-    auto& ship_transform = registry.get<Transform>(ship_id);
 
-    auto& ship_shield = registry.get<Shield>(ship_id);
+inline void player_collision(Registry& registry, GameState& game_state, Entity player_id) {
+    const auto& ship = registry.get<PolygonShip>(player_id);
+    auto& ship_transform = registry.get<Transform>(player_id);
+    auto& ship_shield = registry.get<Shield>(player_id);
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
         const auto& asteroid_size = registry.get<Size>(asteroid_id);
@@ -335,11 +285,11 @@ inline void player_collision_system(Registry& registry, GameState& game_state) {
         auto ship_shield_collision_radius = shield_radius + shield_thickness;
 
         if (asteroid_ship_distance_val > pow(ship_shield_collision_radius + asteroid_collision_radius, 2)) {
-            colliding_objects.erase(std::make_pair(ship_id, asteroid_id));
+            colliding_objects.erase(std::make_pair(player_id, asteroid_id));
             continue;
         }
 
-        auto p = std::make_pair(ship_id, asteroid_id);
+        auto p = std::make_pair(player_id, asteroid_id);
 
         if (colliding_objects.count(p)) { continue; }  // if we're already colliding during this frame, skip.
 
@@ -370,8 +320,13 @@ inline void player_collision_system(Registry& registry, GameState& game_state) {
     } // end for each asteroid
 }
 
-inline void player_input_system(Registry& registry) {
-    Entity player_id = registry.view<PlayerInput>().front();
+inline void player_die(Registry& registry, GameState& game_state, Entity player_id) {
+    registry.add(player_id, Dead{});
+    //    game_state.current_state = state_t::
+
+}
+
+inline void player_input(Registry& registry, Entity player_id, bool clear = false) {
     auto& player = registry.get<PlayerInput>(player_id);
 
     if (IsKeyDown(KEY_W))        { player.thrust = true; }
@@ -379,34 +334,91 @@ inline void player_input_system(Registry& registry) {
     if (IsKeyDown(KEY_S))        { }
     if (IsKeyDown(KEY_D))        { player.rotate_right = true; }
     if (IsKeyPressed(KEY_SPACE)) { player.shoot = true; }
+
+    if (clear) {
+        player.thrust = false;
+        player.shoot = false;
+        player.rotate_left = false;
+        player.rotate_right = false;
+    }
 }
 
-inline void sound_system(Registry& registry) {
+inline void player_scoot_and_rotate(Registry& registry) {
+    auto w = SCREEN_WIDTH;
+    auto h = SCREEN_HEIGHT;
+
+    auto player_vec = registry.view<Transform, PlayerInput, PolygonShip, Registry::Exclude<Dead>>();
+    if (player_vec.empty()) { return; }
+    Entity player_id = player_vec.front();
+
+    auto& input = registry.get<PlayerInput>(player_id);
+    auto& ship = registry.get<PolygonShip>(player_id);
+    auto& player_transform = registry.get<Transform>(player_id);
+
+    if (input.thrust) {
+        player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
+        player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
+
+        auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
+        if (magnitude > ship.max_speed) {
+            auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
+            player_transform.velocity.x = cos(theta) * ship.max_speed;
+            player_transform.velocity.y = sin(theta) * ship.max_speed;
+        }
+    }
+
+    if (input.rotate_left || input.rotate_right) {
+        Vector2 new_start = {}, new_end = {}, new_orientation = {};
+        float t = player_transform.rotation_speed;
+        if (input.rotate_left) { t *= -1.f; }
+
+        for (auto& ship_edge : ship.lines) {
+            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
+            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
+
+            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
+            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
+
+            ship_edge.start = new_start;
+            ship_edge.end   = new_end;
+        }
+
+        new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
+        new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
+
+        ship.orientation = new_orientation;
+    }
 }
 
-inline void shield_system(Registry& registry) {
-    for (Entity shield_id : registry.view<Shield>()) {
-        auto& shield = registry.get<Shield>(shield_id);
-        if (shield.energy_remaining > 0.f) {
-            auto palette = neon_synth_palette;
-            if (shield.energy_remaining <= shield.energy_max && shield.energy_remaining >= shield.energy_max * .666f) {
-                shield.pivot_start = palette.full.start;
-                shield.pivot_end   = palette.full.end,
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .666f, shield.energy_max);
-            } else if (shield.energy_remaining < shield.energy_max * .666f && shield.energy_remaining >= shield.energy_max * .333f) {
-                shield.pivot_start = palette.half.start;
-                shield.pivot_end   = palette.half.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .333f, shield.energy_max * .666f);
-            } else {
-                shield.pivot_start = palette.dead.start;
-                shield.pivot_end   = palette.dead.end;
-                shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, 0.f, shield.energy_max * .333f);
-            }
+
+inline void sound_player(Registry& registry) {
+}
+
+inline void shield_color_update(Registry& registry, bool reset = false) {
+    Entity shield_id = registry.view<Shield>().front();
+    auto& shield = registry.get<Shield>(shield_id);
+
+    if (reset) { shield.energy_remaining = shield_max_energy; }
+
+    if (shield.energy_remaining > 0.f) {
+        auto palette = neon_synth_palette;
+        if (shield.energy_remaining <= shield.energy_max && shield.energy_remaining >= shield.energy_max * .666f) {
+            shield.pivot_start = palette.full.start;
+            shield.pivot_end   = palette.full.end,
+            shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .666f, shield.energy_max);
+        } else if (shield.energy_remaining < shield.energy_max * .666f && shield.energy_remaining >= shield.energy_max * .333f) {
+            shield.pivot_start = palette.half.start;
+            shield.pivot_end   = palette.half.end;
+            shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, shield.energy_max * .333f, shield.energy_max * .666f);
+        } else {
+            shield.pivot_start = palette.dead.start;
+            shield.pivot_end   = palette.dead.end;
+            shield.pivot_lerp  = 1.f - normalize(shield.energy_remaining, 0.f, shield.energy_max * .333f);
         }
     }
 }
 
-inline void render_system(Registry& registry) {
+inline void render(Registry& registry) {
     // note: raylib's approach is to have global access to raylib managed
     //       resources.  in this case, that's the window to which we render
     //       and draw all our stuff.  that means we can just straight up
@@ -470,7 +482,7 @@ inline void render_system(Registry& registry) {
     }
 }
 
-inline void weapon_system(Registry& registry) {
+inline void weapons_fire(Registry& registry) {
     float bullet_speed = 500.f;
     float bullet_offset_from_ship = 15.f;
     float bullet_length = 11.f;

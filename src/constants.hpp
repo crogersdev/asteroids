@@ -10,12 +10,12 @@
 namespace crogersdev {
 
 // useful types
-using Entity = uint16_t;
+using Entity = uint32_t;
 
 // game values
-inline constexpr bool DEBUG_GAME = true;
-inline constexpr int  SCREEN_WIDTH = 800;
-inline constexpr int  SCREEN_HEIGHT = 600;
+inline constexpr bool    DEBUG_GAME = true;
+inline constexpr int     SCREEN_WIDTH = 800;
+inline constexpr int     SCREEN_HEIGHT = 600;
 inline constexpr Vector2 SCREEN = { SCREEN_WIDTH, SCREEN_HEIGHT };
 inline constexpr Vector2 SCREEN_CENTER = { SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
 
@@ -79,43 +79,43 @@ inline constexpr ShieldGradientPalette solar_eclipse_palette{
 };
 
 // Reds
-const Color CRIMSON        = Color{ 220,  20,  60, 255 };
-const Color FIRE_BRICK     = Color{ 178,  34,  34, 255 };
-const Color DARK_RED       = Color{ 139,   0,   0, 255 };
-const Color SALMON         = Color{ 250, 128, 114, 255 };
-const Color CORAL          = Color{ 255, 127,  80, 255 };
-const Color TOMATO         = Color{ 255,  99,  71, 255 };
+inline constexpr Color CRIMSON        = Color{ 220,  20,  60, 255 };
+inline constexpr Color FIRE_BRICK     = Color{ 178,  34,  34, 255 };
+inline constexpr Color DARK_RED       = Color{ 139,   0,   0, 255 };
+inline constexpr Color SALMON         = Color{ 250, 128, 114, 255 };
+inline constexpr Color CORAL          = Color{ 255, 127,  80, 255 };
+inline constexpr Color TOMATO         = Color{ 255,  99,  71, 255 };
 
 // Oranges / Yellows
-const Color DARK_ORANGE    = Color{ 255, 140,   0, 255 };
-const Color MY_GOLD        = Color{ 255, 215,   0, 255 };
-const Color AMBER          = Color{ 255, 191,   0, 255 };
+inline constexpr Color DARK_ORANGE    = Color{ 255, 140,   0, 255 };
+inline constexpr Color MY_GOLD        = Color{ 255, 215,   0, 255 };
+inline constexpr Color AMBER          = Color{ 255, 191,   0, 255 };
 
 // Greens
-const Color LIME_GREEN     = Color{  50, 205,  50, 255 };
-const Color FOREST_GREEN   = Color{  34, 139,  34, 255 };
-const Color EMERALD        = Color{  80, 200, 120, 255 };
-const Color MINT           = Color{  62, 180, 137, 255 };
-const Color CHARTREUSE     = Color{ 127, 255,   0, 255 };
+inline constexpr Color LIME_GREEN     = Color{  50, 205,  50, 255 };
+inline constexpr Color FOREST_GREEN   = Color{  34, 139,  34, 255 };
+inline constexpr Color EMERALD        = Color{  80, 200, 120, 255 };
+inline constexpr Color MINT           = Color{  62, 180, 137, 255 };
+inline constexpr Color CHARTREUSE     = Color{ 127, 255,   0, 255 };
 
 // Blues
-const Color SKY_BLUE       = Color{ 135, 206, 235, 255 };
-const Color STEEL_BLUE     = Color{  70, 130, 180, 255 };
-const Color ROYAL_BLUE     = Color{  65, 105, 225, 255 };
-const Color NAVY           = Color{   0,   0, 128, 255 };
-const Color CYAN           = Color{   0, 255, 255, 255 };
-const Color TEAL           = Color{   0, 128, 128, 255 };
+inline constexpr Color SKY_BLUE       = Color{ 135, 206, 235, 255 };
+inline constexpr Color STEEL_BLUE     = Color{  70, 130, 180, 255 };
+inline constexpr Color ROYAL_BLUE     = Color{  65, 105, 225, 255 };
+inline constexpr Color NAVY           = Color{   0,   0, 128, 255 };
+inline constexpr Color CYAN           = Color{   0, 255, 255, 255 };
+inline constexpr Color TEAL           = Color{   0, 128, 128, 255 };
 
 // Purples / Pinks
-const Color HOT_PINK       = Color{ 255, 105, 180, 255 };
-const Color ORCHID         = Color{ 218, 112, 214, 255 };
-const Color INDIGO         = Color{  75,   0, 130, 255 };
+inline constexpr Color HOT_PINK       = Color{ 255, 105, 180, 255 };
+inline constexpr Color ORCHID         = Color{ 218, 112, 214, 255 };
+inline constexpr Color INDIGO         = Color{  75,   0, 130, 255 };
 
 // Neutrals
-const Color SLATE_GRAY     = Color{ 112, 128, 144, 255 };
-const Color DIM_GRAY       = Color{ 105, 105, 105, 255 };
-const Color SILVER         = Color{ 192, 192, 192, 255 };
-const Color IVORY          = Color{ 255, 255, 240, 255 };
-const Color SMOKE          = Color{ 245, 245, 245, 255 };
+inline constexpr Color SLATE_GRAY     = Color{ 112, 128, 144, 255 };
+inline constexpr Color DIM_GRAY       = Color{ 105, 105, 105, 255 };
+inline constexpr Color SILVER         = Color{ 192, 192, 192, 255 };
+inline constexpr Color IVORY          = Color{ 255, 255, 240, 255 };
+inline constexpr Color SMOKE          = Color{ 245, 245, 245, 255 };
 
 }

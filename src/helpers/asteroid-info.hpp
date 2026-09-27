@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-
 namespace crogersdev {
 
 enum class asteroid_size_t {
@@ -9,29 +7,13 @@ enum class asteroid_size_t {
     SMALL  = 2,
     MEDIUM = 3,
     LARGE  = 4,
-    COUNT  = 4
+    COUNT  = LARGE,
+    ZERO   = TINY
 };
 
-asteroid_size_t operator+(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total = static_cast<int>(asteroid_size_t::COUNT);
-    int next = std::clamp(current + steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
+asteroid_size_t operator+(asteroid_size_t, int);
+asteroid_size_t operator+(int, asteroid_size_t);
+asteroid_size_t operator-(asteroid_size_t, int);
+asteroid_size_t operator-(int, asteroid_size_t);
 
-asteroid_size_t operator+(int steps, asteroid_size_t s) {
-    return s + steps;
-}
-
-asteroid_size_t operator-(asteroid_size_t s, int steps) {
-    int current = static_cast<int>(s);
-    int total   = static_cast<int>(asteroid_size_t::COUNT);
-    int next    = std::clamp(current - steps, 0, total - 1);
-    return static_cast<asteroid_size_t>(next);
-}
-
-asteroid_size_t operator-(int steps, asteroid_size_t s) {
-    return s - steps;
-}
-
-} // end namespace
+}; // end namespace
