@@ -72,12 +72,13 @@ int main(void) {
                 player_input(registry, player_id, true);
             }
             if (game_state.current_state == state_t::DYING) {
-                player_die(registry, game_state, player_id);
+                player_dies(registry, game_state, player_id);
                 movement_update(registry);
-                shield_color_update(registry, true);
+                render(registry);
             }
             if (game_state.current_state == state_t::LEVEL_START) {
                 level_init(registry, game_state);
+                shield_color_update(registry, true);
             }
             if (game_state.current_state == state_t::LEVEL_CLEAR) {
 

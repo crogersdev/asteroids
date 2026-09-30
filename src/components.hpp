@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <raylib.h>
 
 namespace crogersdev {
@@ -23,5 +24,7 @@ struct Shield            { float energy_max, energy_remaining, pivot_lerp; Color
 struct Size              { uint32_t radius; asteroid_size_t size; };
 struct Transform         { Vector2 position, velocity; float rotation_speed, drag, mass; };
 struct Weapon            { uint32_t max_ammo; float cooldown_timer, cooldown; bool ready; };
+
+struct DeadShip          { std::array<Line, 4> lines; std::array<float, 4> spin_rates; std::array<Transform, 4> line_transforms; };
 
 }

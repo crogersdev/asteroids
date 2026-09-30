@@ -112,6 +112,10 @@ inline void bullet_collision(Registry& registry, GameState& game_state) {
     }
 }
 
+inline void clear_level(Registry& registry, GameState& game_state) {
+
+}
+
 inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
@@ -148,22 +152,18 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     else countdown = "GO!";
 
     float font_size = assets->menu_title_font.baseSize * scale;
-    Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), font_size, 2);
-    Vector2 center = Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
-    Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
+    const Vector2 textSize = MeasureTextEx(assets->menu_title_font, countdown.c_str(), font_size, 2);
+    const Vector2 center = Vector2{ SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
+    const Vector2 pos = Vector2{ center.x - textSize.x / 2.f, center.y - textSize.y / 2.f };
 
     DrawTextEx(assets->menu_title_font, countdown.c_str(), pos, assets->menu_title_font.baseSize * scale, 2.0f, c);
     EndShaderMode();
     EndBlendMode();
 }
 
-inline void clear_level(Registry& registry, GameState& game_state) {
-
-}
-
 inline void level_init(Registry& registry, GameState& game_state) {
-    const Vector2 one_third          = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
-    const Vector2 two_thirds         = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
+    const Vector2 one_third  = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
+    const Vector2 two_thirds = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
     std::vector<Entity> asteroids;
     for (uint8_t i = 0; i < game_state.remaining_asteroids; ++i) {
@@ -245,11 +245,24 @@ inline void movement_update(Registry& registry) {
     auto w = SCREEN_WIDTH;
     auto h = SCREEN_HEIGHT;
 
-    for (Entity e : registry.view<Transform, Registry::Exclude<Dead>>()) {
-        auto& transform = registry.get<Transform>(e);
+    auto dead_ship_ids = registry.view<DeadShip>();
+    std::vector<Transform> transforms{};
+    if (!dead_ship_ids.empty()) {
+        auto t = registry.get<DeadShip>(dead_ship_ids.front());
+        for (int i = 0; i < 4; i++) {
+            transforms.push_back(t.line_transforms[i]);
+        }
+    }
 
-        const Vector2 dt_offset = { transform.velocity.x * transform.drag * GetFrameTime(),
-                                    transform.velocity.y * transform.drag * GetFrameTime() };
+    auto transform_ids = registry.view<Transform>();
+    for (Entity e : transform_ids) {
+        transforms.push_back(registry.get<Transform>(e));
+    }
+
+    for (auto& transform : transforms) {
+        const Vector2 dt_offset = Vector2{
+            transform.velocity.x * transform.drag * GetFrameTime(),
+            transform.velocity.y * transform.drag * GetFrameTime() };
 
         transform.position.x += dt_offset.x;
         transform.position.y += dt_offset.y;
@@ -320,10 +333,53 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
     } // end for each asteroid
 }
 
-inline void player_die(Registry& registry, GameState& game_state, Entity player_id) {
-    registry.add(player_id, Dead{});
-    //    game_state.current_state = state_t::
+inline void player_dies(Registry& registry, GameState& game_state, Entity player_id) {
+    auto dead_ships = registry.view<DeadShip>();
+    if (!dead_ships.empty()) {
+        auto& dead_ship = registry.get<DeadShip>(dead_ships.front());
 
+        Vector2 new_start{}, new_end{};
+        for (int i = 0; i < 4; i++) {
+            float t = dead_ship.spin_rates[i];
+            Line ship_edge = dead_ship.lines[i];
+
+            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
+            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
+
+            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
+            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
+
+            dead_ship.lines[i].start = new_start;
+            dead_ship.lines[i].end = new_end;
+        }
+
+        return;
+    }
+
+    registry.add(player_id, Dead{});
+    auto& ship_transform = registry.get<Transform>(player_id);
+    auto& ship = registry.get<PolygonShip>(player_id);
+
+    std::array<Transform, 4> dead_ship_edge_transforms;
+    std::array<float, 4> dead_ship_edge_rotation_rates;
+    for (int i = 0; i < 4; i++) {
+        Vector2 s = { ship_transform.position.x + ship.lines[i].start.x, ship_transform.position.y + ship.lines[i].start.y };
+        Vector2 e = { ship_transform.position.x + ship.lines[i].end.x, ship_transform.position.y + ship.lines[i].end.y };
+        dead_ship_edge_transforms[i] = {
+            Vector2Lerp(s, e, .5f),
+            { ship_transform.velocity.x * my_rng(.7f, 1.3f, Dist::Uniform), ship_transform.velocity.y * my_rng(.7f, 1.3f, Dist::Uniform) },
+            player_turn_speed,
+            player_drag_coeff
+        };
+        dead_ship_edge_rotation_rates[i] = my_rng(0.f, 5.f, Dist::Uniform) * my_rng(0, 1, Dist::Uniform) == 0 ? -1.f : 1.f ;    
+    }
+
+    Entity dead_ship = registry.create();
+    registry.add(dead_ship, DeadShip{ 
+        ship.lines,
+        dead_ship_edge_rotation_rates,
+        dead_ship_edge_transforms
+    });
 }
 
 inline void player_input(Registry& registry, Entity player_id, bool clear = false) {
@@ -368,7 +424,7 @@ inline void player_scoot_and_rotate(Registry& registry) {
     }
 
     if (input.rotate_left || input.rotate_right) {
-        Vector2 new_start = {}, new_end = {}, new_orientation = {};
+        Vector2 new_start{}, new_end{}, new_orientation{};
         float t = player_transform.rotation_speed;
         if (input.rotate_left) { t *= -1.f; }
 
@@ -390,8 +446,8 @@ inline void player_scoot_and_rotate(Registry& registry) {
     }
 }
 
-
 inline void sound_player(Registry& registry) {
+
 }
 
 inline void shield_color_update(Registry& registry, bool reset = false) {
@@ -424,28 +480,45 @@ inline void render(Registry& registry) {
     //       and draw all our stuff.  that means we can just straight up
     //       call DrawLineEx without any problems or concerns
 
-    Entity ship_id = registry.view<PolygonShip, Shield, Transform>().front();
-    const auto& ship = registry.get<PolygonShip>(ship_id);
-    const auto& transform = registry.get<Transform>(ship_id);
+    for (auto ship_id : registry.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
+        const auto& ship = registry.get<PolygonShip>(ship_id);
+        const auto& transform = registry.get<Transform>(ship_id);
 
-    Vector2 pos = transform.position;
-    auto& shield = registry.get<Shield>(ship_id);
-    if (shield.energy_remaining > 0) {
-        DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
+        Vector2 pos = transform.position;
+        auto& shield = registry.get<Shield>(ship_id);
+        if (shield.energy_remaining > 0) {
+            DrawRing(pos, shield_radius, shield_radius + shield_thickness, 0, 360, 36, ColorLerp(shield.pivot_start, shield.pivot_end, shield.pivot_lerp));
+        }
+
+        Vector2 start = {}, end = {};
+        for (const auto& ship_edge : ship.lines) {
+            start.x = ship_edge.start.x + pos.x;
+            start.y = ship_edge.start.y + pos.y;
+            end.x = ship_edge.end.x + pos.x;
+            end.y = ship_edge.end.y + pos.y;
+
+            DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
+        }
+
+        Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
+        // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
-    Vector2 start = {}, end = {};
-    for (const auto& ship_edge : ship.lines) {
-        start.x = ship_edge.start.x + pos.x;
-        start.y = ship_edge.start.y + pos.y;
-        end.x = ship_edge.end.x + pos.x;
-        end.y = ship_edge.end.y + pos.y;
+    for (auto dead_ship_id : registry.view<DeadShip>()) {
+        const auto& dead_ship = registry.get<DeadShip>(dead_ship_id);
 
-        DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
+        Vector2 start = {}, end = {};
+        for (int i = 0; i < 4; i++) {
+            auto ship_edge = dead_ship.lines[i];
+            auto pos = dead_ship.line_transforms[i].position;
+            start.x = ship_edge.start.x + pos.x;
+            start.y = ship_edge.start.y + pos.y;
+            end.x = ship_edge.end.x + pos.x;
+            end.y = ship_edge.end.y + pos.y;
+
+            DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
+        }    
     }
-
-    Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
-    // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {
         const auto& asteroid_shape = registry.get<AsteroidShape>(asteroid_id);
@@ -497,7 +570,6 @@ inline void weapons_fire(Registry& registry) {
         auto& weapon = registry.get<Weapon>(e);
 
         if (input.shoot && weapon.ready) {
-
             weapon.cooldown_timer += (1.f / weapon.max_ammo) * weapon.cooldown;
             if (weapon.cooldown_timer >= weapon.cooldown) { weapon.ready = false; }
 
