@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asteroid-generator.hpp"
+#include "particle-generator.hpp"
 #include "../constants.hpp"
 #include "../components.hpp"
 #include "../constants.hpp"
@@ -20,17 +21,13 @@
 namespace crogersdev {
 
 inline void bullet_collision(Registry& registry, GameState& game_state) {
-    std::vector<Entity> dead_asteroids;
-    std::vector<Entity> dead_bullets;
-    std::vector<Entity> dead_particles;
-
-    // TODO: If you're goi!g to make bullets long lines, you'll need
+    // TODO: If you're going to make bullets long lines, you'll need
     // to track collision through leading edge or possibly all points along the line
     // in order to preserve things like an asteroid crossing that line
-    for (Entity bullet_id : registry.view<Bullet, Transform>()) {
+    for (Entity bullet_id : registry.view<Bullet, Transform, Registry::Exclude<Dead>>()) {
         const auto& bullet_transform = registry.get<Transform>(bullet_id);
 
-        for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
+        for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform, Registry::Exclude<Dead>>()) {
             const auto& asteroid_transform = registry.get<Transform>(asteroid_id);
             const auto& asteroid_size = registry.get<Size>(asteroid_id);
             const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
@@ -41,25 +38,7 @@ inline void bullet_collision(Registry& registry, GameState& game_state) {
                 pow(bullet_transform.position.y - asteroid_transform.position.y, 2);
 
             if (bullet_distance_to_asteroid <= pow(asteroid_collision_radius, 2)) {
-                for (int p = 0; p < particle_max; p++) {
-                    auto particle_theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
-                    auto particle_speed = my_rng(250.f, 50.f, Dist::Normal);
-                    auto particle_radius = my_rng(3.5f, .5f, Dist::Normal);
-                    auto particle_lifespan = my_rng(.1f, .75f, Dist::Normal);
-
-                    Entity particle = registry.create();
-                    registry.add(particle, Particle{
-                        particle_age,
-                        particle_lifespan,
-                        particle_radius,
-                        WHITE });
-                    registry.add(particle, Transform{
-                        asteroid_transform.position,
-                        { cos(particle_theta) * particle_speed, sin(particle_theta) * particle_speed },
-                        0.f,
-                        particle_drag,
-                        0.f });
-                }
+                generate_particles(registry, asteroid_transform.position);
 
                 if (asteroid_size.size > asteroid_size_t::TINY) {
                     auto parent_speed = sqrt( pow(asteroid_transform.velocity.x, 2.f) + pow(asteroid_transform.velocity.y, 2.f));
@@ -84,32 +63,13 @@ inline void bullet_collision(Registry& registry, GameState& game_state) {
                     }
                 }
 
-                dead_asteroids.push_back(asteroid_id);
-                dead_bullets.push_back(bullet_id);
+                registry.add(asteroid_id, Dead{});
+                registry.add(bullet_id, Dead{});
             }
         }
     }
 
-    for (Entity particle_id : registry.view<Particle>()) {
-        auto& particle_info = registry.get<Particle>(particle_id);
 
-        particle_info.age += GetFrameTime();
-
-        if (particle_info.age >= particle_info.lifespan) {
-            dead_particles.push_back(particle_id);
-        }
-    }
-
-    for (auto b : dead_bullets) {
-        registry.destroy(b);
-    }
-    for (auto a : dead_asteroids) {
-        game_state.remaining_asteroids--;
-        registry.destroy(a);
-    }
-    for (auto p : dead_particles) {
-        registry.destroy(p);
-    }
 }
 
 inline void clear_level(Registry& registry, GameState& game_state) {
@@ -185,6 +145,34 @@ inline void level_init(Registry& registry, GameState& game_state) {
     game_state.current_state = state_t::PLAYING;
 }
 
+inline void eraser(Registry& registry, GameState& game_state) {
+    std::vector<Entity> dead_asteroids;
+    std::vector<Entity> dead_bullets;
+    std::vector<Entity> dead_particles;
+
+    for (Entity particle_id : registry.view<Particle>()) {
+        auto& particle_info = registry.get<Particle>(particle_id);
+
+        particle_info.age += GetFrameTime();
+
+        if (particle_info.age >= particle_info.lifespan) {
+            dead_particles.push_back(particle_id);
+        }
+    }
+
+    for (auto b : registry.view<Bullet, Dead>()) {
+        registry.destroy(b);
+    }
+
+    for (auto a : registry.view<AsteroidShape, Size, Transform, Dead>()) {
+        game_state.remaining_asteroids--;
+        registry.destroy(a);
+    }
+    for (auto p : dead_particles) {
+        registry.destroy(p);
+    }
+}
+
 inline void level_progress(Registry& registry, GameState& game_state) {
     float corner = .1f;
     Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, SCREEN_HEIGHT - SCREEN_HEIGHT * corner };
@@ -245,21 +233,8 @@ inline void movement_update(Registry& registry) {
     auto w = SCREEN_WIDTH;
     auto h = SCREEN_HEIGHT;
 
-    auto dead_ship_ids = registry.view<DeadShip>();
-    std::vector<Transform> transforms{};
-    if (!dead_ship_ids.empty()) {
-        auto t = registry.get<DeadShip>(dead_ship_ids.front());
-        for (int i = 0; i < 4; i++) {
-            transforms.push_back(t.line_transforms[i]);
-        }
-    }
-
-    auto transform_ids = registry.view<Transform>();
-    for (Entity e : transform_ids) {
-        transforms.push_back(registry.get<Transform>(e));
-    }
-
-    for (auto& transform : transforms) {
+    for (Entity e : registry.view<Transform>()) {
+        auto& transform = registry.get<Transform>(e);
         const Vector2 dt_offset = Vector2{
             transform.velocity.x * transform.drag * GetFrameTime(),
             transform.velocity.y * transform.drag * GetFrameTime() };
@@ -287,7 +262,7 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
     auto& ship_transform = registry.get<Transform>(player_id);
     auto& ship_shield = registry.get<Shield>(player_id);
 
-    for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform>()) {
+    for (Entity asteroid_id : registry.view<AsteroidShape, Size, Transform, Registry::Exclude<Dead>>()) {
         const auto& asteroid_size = registry.get<Size>(asteroid_id);
         const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
 
@@ -312,8 +287,10 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
             game_state.lives--;
             if (game_state.lives > 0) {
                 game_state.current_state = state_t::DYING;
+                return;
             } else {
                 game_state.current_state = state_t::GAME_OVER;
+                return;
             }
         }
 
@@ -334,52 +311,45 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
 }
 
 inline void player_dies(Registry& registry, GameState& game_state, Entity player_id) {
-    auto dead_ships = registry.view<DeadShip>();
-    if (!dead_ships.empty()) {
-        auto& dead_ship = registry.get<DeadShip>(dead_ships.front());
+    auto foo = registry.view<Line, Transform>();
+    if (!foo.empty()) { 
+        for(Entity dead_ship_id : registry.view<Line, Transform>()) {
+            auto& dead_ship_edge = registry.get<Line>(dead_ship_id);
+            auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_id);
 
-        Vector2 new_start{}, new_end{};
-        for (int i = 0; i < 4; i++) {
-            float t = dead_ship.spin_rates[i];
-            Line ship_edge = dead_ship.lines[i];
+            Vector2 new_start{}, new_end{};
+            float t = dead_ship_edge_transform.rotation_speed;
 
-            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
-            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
+            new_start.x = dead_ship_edge.start.x * cos(t) - dead_ship_edge.start.y * sin(t);
+            new_start.y = dead_ship_edge.start.x * sin(t) + dead_ship_edge.start.y * cos(t);
 
-            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
-            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
+            new_end.x = dead_ship_edge.end.x * cos(t) - dead_ship_edge.end.y * sin(t);
+            new_end.y = dead_ship_edge.end.x * sin(t) + dead_ship_edge.end.y * cos(t);
 
-            dead_ship.lines[i].start = new_start;
-            dead_ship.lines[i].end = new_end;
+            dead_ship_edge.start = new_start;
+            dead_ship_edge.end = new_end;
         }
+    } else {
+        registry.add(player_id, Dead{});
+        auto& ship_transform = registry.get<Transform>(player_id);
+        auto& ship = registry.get<PolygonShip>(player_id);
 
-        return;
+        generate_particles(registry, ship_transform.position, 100);
+        for (int i = 0; i < 4; i++) {
+            Entity dead_ship_edge = registry.create();
+            registry.add(dead_ship_edge, Line{ship.lines[i]});
+            registry.add(dead_ship_edge, Transform{
+                Vector2Lerp(
+                    { ship.lines[i].start.x + ship_transform.position.x, ship.lines[i].start.y + ship_transform.position.y }, 
+                    { ship.lines[i].end.x   + ship_transform.position.x, ship.lines[i].end.y   + ship_transform.position.y },
+                    .5f),
+                Vector2Scale(ship_transform.velocity, my_rng(.1f, 1.5f, Dist::Uniform)), 
+                my_rng(0.f, .09f, Dist::Uniform) * (my_rng(0, 1, Dist::Uniform) == 0 ? -1.f : 1.f),
+                .25f,  // drag of 1.f means nothing held back on velocity computation
+                0.f
+            });
+        }
     }
-
-    registry.add(player_id, Dead{});
-    auto& ship_transform = registry.get<Transform>(player_id);
-    auto& ship = registry.get<PolygonShip>(player_id);
-
-    std::array<Transform, 4> dead_ship_edge_transforms;
-    std::array<float, 4> dead_ship_edge_rotation_rates;
-    for (int i = 0; i < 4; i++) {
-        Vector2 s = { ship_transform.position.x + ship.lines[i].start.x, ship_transform.position.y + ship.lines[i].start.y };
-        Vector2 e = { ship_transform.position.x + ship.lines[i].end.x, ship_transform.position.y + ship.lines[i].end.y };
-        dead_ship_edge_transforms[i] = {
-            Vector2Lerp(s, e, .5f),
-            { ship_transform.velocity.x * my_rng(.7f, 1.3f, Dist::Uniform), ship_transform.velocity.y * my_rng(.7f, 1.3f, Dist::Uniform) },
-            player_turn_speed,
-            player_drag_coeff
-        };
-        dead_ship_edge_rotation_rates[i] = my_rng(0.f, 5.f, Dist::Uniform) * my_rng(0, 1, Dist::Uniform) == 0 ? -1.f : 1.f ;    
-    }
-
-    Entity dead_ship = registry.create();
-    registry.add(dead_ship, DeadShip{ 
-        ship.lines,
-        dead_ship_edge_rotation_rates,
-        dead_ship_edge_transforms
-    });
 }
 
 inline void player_input(Registry& registry, Entity player_id, bool clear = false) {
@@ -481,6 +451,7 @@ inline void render(Registry& registry) {
     //       call DrawLineEx without any problems or concerns
 
     for (auto ship_id : registry.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
+        std::cout << "ship id is: " << ship_id << " ond oooh wee we have a ship\n";
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& transform = registry.get<Transform>(ship_id);
 
@@ -504,20 +475,18 @@ inline void render(Registry& registry) {
         // DrawLineEx(pos, Vector2Add(pos, arrow), 2.f, HOT_PINK);
     }
 
-    for (auto dead_ship_id : registry.view<DeadShip>()) {
-        const auto& dead_ship = registry.get<DeadShip>(dead_ship_id);
+    for (auto dead_ship_edge_id : registry.view<Line, Transform>()) {
+        const auto& dead_ship_edge = registry.get<Line>(dead_ship_edge_id);
+        const auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_edge_id);
 
         Vector2 start = {}, end = {};
-        for (int i = 0; i < 4; i++) {
-            auto ship_edge = dead_ship.lines[i];
-            auto pos = dead_ship.line_transforms[i].position;
-            start.x = ship_edge.start.x + pos.x;
-            start.y = ship_edge.start.y + pos.y;
-            end.x = ship_edge.end.x + pos.x;
-            end.y = ship_edge.end.y + pos.y;
+        auto pos = dead_ship_edge_transform.position;
+        start.x = dead_ship_edge.start.x + pos.x;
+        start.y = dead_ship_edge.start.y + pos.y;
+        end.x = dead_ship_edge.end.x + pos.x;
+        end.y = dead_ship_edge.end.y + pos.y;
 
-            DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
-        }    
+        DrawLineEx(start, end, dead_ship_edge.thickness, dead_ship_edge.color);
     }
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {

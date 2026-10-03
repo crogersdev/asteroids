@@ -67,13 +67,15 @@ int main(void) {
                 movement_update(registry);
                 weapons_fire(registry);
                 shield_color_update(registry);
-                render(registry);
                 level_progress(registry, game_state);
                 player_input(registry, player_id, true);
+                eraser(registry, game_state);
+                render(registry);
             }
             if (game_state.current_state == state_t::DYING) {
                 player_dies(registry, game_state, player_id);
                 movement_update(registry);
+                eraser(registry, game_state);
                 render(registry);
             }
             if (game_state.current_state == state_t::LEVEL_START) {
