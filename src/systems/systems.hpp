@@ -334,7 +334,7 @@ inline void player_dies(Registry& registry, GameState& game_state, Entity player
         auto& ship_transform = registry.get<Transform>(player_id);
         auto& ship = registry.get<PolygonShip>(player_id);
 
-        generate_particles(registry, ship_transform.position, 100);
+        generate_particles(registry, ship_transform.position, atan2(ship_transform.velocity.y, ship_transform.velocity.x), PI/8.f, 200);
         for (int i = 0; i < 4; i++) {
             Entity dead_ship_edge = registry.create();
             registry.add(dead_ship_edge, Line{ship.lines[i]});
@@ -451,7 +451,6 @@ inline void render(Registry& registry) {
     //       call DrawLineEx without any problems or concerns
 
     for (auto ship_id : registry.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
-        std::cout << "ship id is: " << ship_id << " ond oooh wee we have a ship\n";
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& transform = registry.get<Transform>(ship_id);
 
