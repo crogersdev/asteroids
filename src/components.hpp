@@ -19,7 +19,7 @@ struct Bullet            { Line bullet; float speed, age, lifespan; };
 struct Dead              { };
 struct Particle          { float age, lifespan, radius; Color color; };
 struct PlayerInput       { bool thrust, shoot, rotate_left, rotate_right; };
-struct PolygonShip       { std::array<Line, 4> lines; Vector2 orientation; float max_speed, acceleration; };
+struct PolygonShip       { std::array<Line, 4> lines; float orientation, max_speed, acceleration; };
 struct Shield            { float energy_max, energy_remaining, pivot_lerp; Color start, end, pivot_start, pivot_end; };
 struct Size              { uint32_t radius; asteroid_size_t size; };
 struct Transform         { Vector2 position, velocity; float rotation_speed, drag, mass; };

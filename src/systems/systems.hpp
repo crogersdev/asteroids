@@ -146,8 +146,6 @@ inline void level_init(Registry& registry, GameState& game_state) {
 }
 
 inline void eraser(Registry& registry, GameState& game_state) {
-    std::vector<Entity> dead_asteroids;
-    std::vector<Entity> dead_bullets;
     std::vector<Entity> dead_particles;
 
     for (Entity particle_id : registry.view<Particle>()) {
@@ -157,6 +155,13 @@ inline void eraser(Registry& registry, GameState& game_state) {
 
         if (particle_info.age >= particle_info.lifespan) {
             dead_particles.push_back(particle_id);
+        }
+    }
+
+    for (Entity dse : registry.view<Line, Transform, Dead>()) {
+        registry.destroy(dse);
+        if (dse == *registry.view<Line, Transform, Dead>().end()) {
+            game_state.current_state = state_t::LEVEL_START;
         }
     }
 
@@ -311,9 +316,9 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
 }
 
 inline void player_dies(Registry& registry, GameState& game_state, Entity player_id) {
-    auto foo = registry.view<Line, Transform>();
-    if (!foo.empty()) { 
-        for(Entity dead_ship_id : registry.view<Line, Transform>()) {
+    auto dead_ship_edges = registry.view<Line, Transform>();
+    if (!dead_ship_edges.empty()) { 
+        for(Entity dead_ship_id : dead_ship_edges) {
             auto& dead_ship_edge = registry.get<Line>(dead_ship_id);
             auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_id);
 
@@ -337,10 +342,10 @@ inline void player_dies(Registry& registry, GameState& game_state, Entity player
         generate_particles(registry, ship_transform.position, atan2(ship_transform.velocity.y, ship_transform.velocity.x), PI/8.f, 200);
         for (int i = 0; i < 4; i++) {
             Entity dead_ship_edge = registry.create();
-            registry.add(dead_ship_edge, Line{ship.lines[i]});
+            registry.add(dead_ship_edge, Line{ ship.lines[i] });
             registry.add(dead_ship_edge, Transform{
                 Vector2Lerp(
-                    { ship.lines[i].start.x + ship_transform.position.x, ship.lines[i].start.y + ship_transform.position.y }, 
+                    { ship.lines[i].start.x + ship_transform.position.x, ship.lines[i].start.y + ship_transform.position.y },
                     { ship.lines[i].end.x   + ship_transform.position.x, ship.lines[i].end.y   + ship_transform.position.y },
                     .5f),
                 Vector2Scale(ship_transform.velocity, my_rng(.1f, 1.5f, Dist::Uniform)), 
@@ -382,8 +387,10 @@ inline void player_scoot_and_rotate(Registry& registry) {
     auto& player_transform = registry.get<Transform>(player_id);
 
     if (input.thrust) {
-        player_transform.velocity.x += ship.orientation.x * ship.acceleration * GetFrameTime();
-        player_transform.velocity.y += ship.orientation.y * ship.acceleration * GetFrameTime();
+        player_transform.velocity += Vector2{
+            cos(ship.orientation - PI/2.f) * ship.acceleration * GetFrameTime(),
+            sin(ship.orientation - PI/2.f) * ship.acceleration * GetFrameTime()
+        };
 
         auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
         if (magnitude > ship.max_speed) {
@@ -394,26 +401,12 @@ inline void player_scoot_and_rotate(Registry& registry) {
     }
 
     if (input.rotate_left || input.rotate_right) {
-        Vector2 new_start{}, new_end{}, new_orientation{};
-        float t = player_transform.rotation_speed;
+        float t = player_transform.rotation_speed * GetFrameTime();
         if (input.rotate_left) { t *= -1.f; }
-
-        for (auto& ship_edge : ship.lines) {
-            new_start.x = ship_edge.start.x * cos(t) - ship_edge.start.y * sin(t);
-            new_start.y = ship_edge.start.x * sin(t) + ship_edge.start.y * cos(t);
-
-            new_end.x = ship_edge.end.x * cos(t) - ship_edge.end.y * sin(t);
-            new_end.y = ship_edge.end.x * sin(t) + ship_edge.end.y * cos(t);
-
-            ship_edge.start = new_start;
-            ship_edge.end   = new_end;
-        }
-
-        new_orientation.x = ship.orientation.x * cos(t) - ship.orientation.y * sin(t);
-        new_orientation.y = ship.orientation.x * sin(t) + ship.orientation.y * cos(t);
-
-        ship.orientation = new_orientation;
+        ship.orientation += t;
     }
+
+    // std::cout << "orientation: " << ship.orientation << "\n";
 }
 
 inline void sound_player(Registry& registry) {
@@ -462,10 +455,11 @@ inline void render(Registry& registry) {
 
         Vector2 start = {}, end = {};
         for (const auto& ship_edge : ship.lines) {
-            start.x = ship_edge.start.x + pos.x;
-            start.y = ship_edge.start.y + pos.y;
-            end.x = ship_edge.end.x + pos.x;
-            end.y = ship_edge.end.y + pos.y;
+            start = Vector2Rotate(ship_edge.start, ship.orientation);
+            end   = Vector2Rotate(ship_edge.end,   ship.orientation);
+
+            start = Vector2Add(start, pos);
+            end   = Vector2Add(end, pos);
 
             DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
         }
@@ -479,13 +473,16 @@ inline void render(Registry& registry) {
         const auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_edge_id);
 
         Vector2 start = {}, end = {};
-        auto pos = dead_ship_edge_transform.position;
-        start.x = dead_ship_edge.start.x + pos.x;
-        start.y = dead_ship_edge.start.y + pos.y;
-        end.x = dead_ship_edge.end.x + pos.x;
-        end.y = dead_ship_edge.end.y + pos.y;
+        start = Vector2Rotate(dead_ship_edge.start, dead_ship_edge_transform.orientation);
+        end   = Vector2Rotate(dead_ship_edge.end,   ship.orientation);
 
-        DrawLineEx(start, end, dead_ship_edge.thickness, dead_ship_edge.color);
+        start = Vector2Add(start, pos);
+        end   = Vector2Add(end, pos);
+
+            DrawLineEx(start, end, ship_edge.thickness, ship_edge.color);
+
+        Vector2 arrow = Vector2Scale(Vector2Normalize(transform.velocity), 40.f);
+        DrawLineEx(dead_ship_edge.start, dead_ship_edge.end, dead_ship_edge.thickness, dead_ship_edge.color);
     }
 
     for (Entity asteroid_id : registry.view<AsteroidShape, Transform>()) {
@@ -544,8 +541,8 @@ inline void weapons_fire(Registry& registry) {
             input.shoot = false;
 
             Vector2 bullet_end = Vector2{
-                ship.orientation.x * bullet_length,
-                ship.orientation.y * bullet_length };
+                cos(ship.orientation - PI/2.f) * bullet_length,
+                sin(ship.orientation - PI/2.f) * bullet_length };
 
             Entity bullet = registry.create();
             registry.add(bullet, Bullet{
@@ -555,11 +552,11 @@ inline void weapons_fire(Registry& registry) {
                 bullet_lifespan });
             registry.add(bullet, Transform{
                 Vector2{
-                    ship.orientation.x * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
-                    ship.orientation.y * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
+                    cos(ship.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
+                    sin(ship.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
                 Vector2{
-                    ship.orientation.x * bullet_speed,
-                    ship.orientation.y * bullet_speed },
+                    cos(ship.orientation - PI/2.f) * bullet_speed,
+                    sin(ship.orientation - PI/2.f) * bullet_speed },
                 0.f,
                 1.f,
                 0.f });

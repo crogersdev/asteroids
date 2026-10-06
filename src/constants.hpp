@@ -40,7 +40,7 @@ inline constexpr float    player_acceleration = 750.f;
 inline constexpr float    player_drag_coeff   = .995;
 inline constexpr uint32_t player_max_ammo     = 999;
 inline constexpr float    player_max_speed    = 425.f;
-inline constexpr float    player_turn_speed   = .08f;
+inline constexpr float    player_turn_speed   = 5.f;
 
 inline constexpr float    timer_game_start_animation_max = 3.f;
 
