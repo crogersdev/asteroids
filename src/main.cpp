@@ -30,12 +30,12 @@ int main(void) {
         Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE, 1.5f },
         Line{{ +10.f,  +4.f }, {   0.f,   0.f }, GREEN, 1.5f },
         Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW, 1.5f }}, 
-        atan2(0.f, 1.f),
         player_max_speed,
         player_acceleration });
     registry.add(player_id, crogersdev::Transform{
         SCREEN_CENTER,
         { 0.f, 0.f },
+        atan2(0.f, 1.f),
         player_turn_speed,
         player_drag_coeff });
 

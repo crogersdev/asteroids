@@ -2,6 +2,7 @@
 
 #include <random>
 #include <type_traits>
+#include <raymath.h>
 
 namespace crogersdev {
 
@@ -31,4 +32,15 @@ inline T my_rng(T a, T b, Dist type) {
 template <typename T>
 inline T normalize(T x, T min, T max) { return (x - min) / (max - min); };
 
+Vector2 rotate_vector(Vector2 point, Vector2 pivot, float angleRadians) {
+    // Step 1: Translate point back to the origin relative to the pivot
+    Vector2 translatedPoint = Vector2Subtract(point, pivot);
+    
+    // Step 2: Rotate the origin-centered vector
+    // NOTE: raymath's Vector2Rotate() expects the angle in RADIANS
+    Vector2 rotatedPoint = Vector2Rotate(translatedPoint, angleRadians);
+    
+    // Step 3: Translate the point back to its original pivot space
+    return Vector2Add(rotatedPoint, pivot);
+}
 } // end namespace
