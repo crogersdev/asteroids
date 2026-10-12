@@ -30,6 +30,7 @@ inline void generate_particles(
             position,
             { cos(particle_theta) * particle_speed, sin(particle_theta) * particle_speed },
             0.f,
+            0.f,
             particle_drag,
             0.f });
     }

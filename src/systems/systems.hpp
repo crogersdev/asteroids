@@ -52,7 +52,8 @@ inline void bullet_collision(Registry& registry, GameState& game_state) {
                         registry.add(new_asteroid, Size{ asteroid_size.radius, asteroid_size.size-1 });
                         registry.add(new_asteroid, Transform{
                             asteroid_transform.position,
-                            { cos(new_theta) * new_speed, sin(new_theta) * new_speed },
+                            { cosf(new_theta) * new_speed, sinf(new_theta) * new_speed },
+                            0.f,
                             0.f,
                             1.f,
                             0.f });
@@ -133,10 +134,10 @@ inline void level_init(Registry& registry, GameState& game_state) {
 
         asteroids.push_back(registry.create());
         float theta = my_rng(0.f, 2.f * PI, Dist::Uniform);
-        float dir_x = cos(theta);
-        float dir_y = sin(theta);
+        float dir_x = cosf(theta);
+        float dir_y = sinf(theta);
         registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size_t::LARGE });
-        registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 1.f, 0.f });
+        registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 0.f, 1.f, 0.f });
         registry.add(asteroids.at(i), AsteroidShape{ generate_asteroid_shape(asteroid_size_t::LARGE, asteroid_radius, RED, 1.25f) });
     }
 
@@ -318,7 +319,8 @@ inline void player_dies(Registry& registry, GameState& game_state, Entity player
     if (!dead_ship_edges.empty()) { 
         for(Entity dead_ship_id : dead_ship_edges) {
             auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_id);
-            dead_ship_edge_transform.orientation += dead_ship_edge_transform.rotation_speed * GetFrameTime();
+            float t = dead_ship_edge_transform.rotation_speed * GetFrameTime();
+            dead_ship_edge_transform.orientation += t;
         }
     } else {
         registry.add(player_id, Dead{});
@@ -328,14 +330,30 @@ inline void player_dies(Registry& registry, GameState& game_state, Entity player
         generate_particles(registry, ship_transform.position, atan2(ship_transform.velocity.y, ship_transform.velocity.x), PI/8.f, 200);
         for (int i = 0; i < 4; i++) {
             Entity dead_ship_edge = registry.create();
-            registry.add(dead_ship_edge, Line{ ship.lines[i] });
+
+            auto world_position_start = Vector2Add(ship.lines[i].start, ship_transform.position);
+            auto world_position_end   = Vector2Add(ship.lines[i].end,   ship_transform.position);
+
+            Vector2 new_position = Vector2Lerp(
+                Vector2Add(ship.lines[i].start, ship_transform.position),
+                Vector2Add(ship.lines[i].end,   ship_transform.position),
+                .5f);
+
+            auto local_position_start = Vector2Subtract(world_position_start, new_position);
+            auto local_position_end   = Vector2Subtract(world_position_end,   new_position);
+
+            registry.add(dead_ship_edge, Line{
+               local_position_start,
+               local_position_end,
+               ship.lines[i].color,
+               ship.lines[i].thickness
+            });
+
             registry.add(dead_ship_edge, Transform{
-                Vector2Lerp(
-                    { ship.lines[i].start.x + ship_transform.position.x, ship.lines[i].start.y + ship_transform.position.y },
-                    { ship.lines[i].end.x   + ship_transform.position.x, ship.lines[i].end.y   + ship_transform.position.y },
-                    .5f),
-                Vector2Scale(ship_transform.velocity, my_rng(.1f, 1.5f, Dist::Uniform)), 
-                my_rng(0.f, .09f, Dist::Uniform) * (my_rng(0, 1, Dist::Uniform) == 0 ? -1.f : 1.f),
+                new_position,
+                { ship_transform.velocity.x * my_rng(-PI/6.f, PI/6.f, Dist::Uniform), ship_transform.velocity.y * my_rng(-PI/6.f, PI/6.f, Dist::Uniform) }, 
+                ship_transform.orientation * my_rng(.75f, 1.25f, Dist::Uniform),
+                my_rng(1.f, 3.f, Dist::Uniform) * (my_rng(0, 1, Dist::Uniform) == 0 ? -1.f : 1.f),
                 .25f,  // drag of 1.f means nothing held back on velocity computation
                 0.f
             });
@@ -374,15 +392,15 @@ inline void player_scoot_and_rotate(Registry& registry) {
 
     if (input.thrust) {
         player_transform.velocity += Vector2{
-            cos(player_transform.orientation - PI/2.f) * ship.acceleration * GetFrameTime(),
-            sin(player_transform.orientation - PI/2.f) * ship.acceleration * GetFrameTime()
+            cosf(player_transform.orientation - PI/2.f) * ship.acceleration * GetFrameTime(),
+            sinf(player_transform.orientation - PI/2.f) * ship.acceleration * GetFrameTime()
         };
 
         auto magnitude = sqrt(pow(player_transform.velocity.x, 2.f) + pow(player_transform.velocity.y, 2.f));
         if (magnitude > ship.max_speed) {
             auto theta = atan2(player_transform.velocity.y, player_transform.velocity.x);
-            player_transform.velocity.x = cos(theta) * ship.max_speed;
-            player_transform.velocity.y = sin(theta) * ship.max_speed;
+            player_transform.velocity.x = cosf(theta) * ship.max_speed;
+            player_transform.velocity.y = sinf(theta) * ship.max_speed;
         }
     }
 
@@ -454,11 +472,13 @@ inline void render(Registry& registry) {
         const auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_edge_id);
 
         Vector2 start = {}, end = {};
-        start = rotate_vector(dead_ship_edge.start, dead_ship_edge_transform.position, dead_ship_edge_transform.orientation);
-        end   = rotate_vector(dead_ship_edge.end,   dead_ship_edge_transform.position, dead_ship_edge_transform.orientation);
+        auto pos = dead_ship_edge_transform.position;
 
-        start = Vector2Add(start, dead_ship_edge_transform.position);
-        end   = Vector2Add(end,   dead_ship_edge_transform.position);
+        start = Vector2Rotate(dead_ship_edge.start, dead_ship_edge_transform.orientation);
+        end   = Vector2Rotate(dead_ship_edge.end,   dead_ship_edge_transform.orientation);
+
+        start = Vector2Add(start, pos);
+        end   = Vector2Add(end,   pos);
 
         DrawLineEx(start, end, dead_ship_edge.thickness, dead_ship_edge.color);
     }
@@ -517,8 +537,8 @@ inline void weapons_fire(Registry& registry) {
             input.shoot = false;
 
             Vector2 bullet_end = Vector2{
-                cos(player_transform.orientation - PI/2.f) * bullet_length,
-                sin(player_transform.orientation - PI/2.f) * bullet_length };
+                cosf(player_transform.orientation - PI/2.f) * bullet_length,
+                sinf(player_transform.orientation - PI/2.f) * bullet_length };
 
             Entity bullet = registry.create();
             registry.add(bullet, Bullet{
@@ -528,11 +548,12 @@ inline void weapons_fire(Registry& registry) {
                 bullet_lifespan });
             registry.add(bullet, Transform{
                 Vector2{
-                    cos(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
-                    sin(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
+                    cosf(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
+                    sinf(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
                 Vector2{
-                    cos(player_transform.orientation - PI/2.f) * bullet_speed,
-                    sin(player_transform.orientation - PI/2.f) * bullet_speed },
+                    cosf(player_transform.orientation - PI/2.f) * bullet_speed,
+                    sinf(player_transform.orientation - PI/2.f) * bullet_speed },
+                0.f,
                 0.f,
                 1.f,
                 0.f });
