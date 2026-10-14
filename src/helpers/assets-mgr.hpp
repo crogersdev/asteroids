@@ -15,19 +15,21 @@ struct Timer {
 };
 
 struct Assets {
-    Font menu_title_font;
-    Font menu_option_font;
+    Font   menu_title_font;
+    Font   menu_option_font;
     Shader title_font_shader;
-    Timer game_start_animation_timer;
+    Timer  game_start_animation_timer;
+    Timer  player_resurrection_timer;
 
+    // NOTE: the relative paths here are relative to where we build
+    //       and not where the file lives relative to this file's
+    //       location on disk.  Need to figure out how to change that.
     Assets()
-    : game_start_animation_timer(0.f, timer_game_start_animation_max),
+    : menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 512.f, nullptr, 0)),
+      menu_option_font(LoadFontEx("../assets/cubic.ttf", 48.f, nullptr, 0)),
       title_font_shader(LoadShader(0, "resources/shaders/glsl330/sdf.fs")),
-      // NOTE: the relative path here is relative to where we build
-      //       and not where the file lives relative to this file's
-      //       location on disk
-      menu_title_font(LoadFontEx("../assets/BadMofo.ttf", 512.f, nullptr, 0)),
-      menu_option_font(LoadFontEx("../assets/cubic.ttf", 48.f, nullptr, 0))
+      game_start_animation_timer(0.f, timer_game_start_animation_max),
+      player_resurrection_timer(0.f, timer_player_resurrection_max)
     {
         SetTextureFilter(menu_title_font.texture, TEXTURE_FILTER_BILINEAR);
     };

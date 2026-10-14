@@ -43,6 +43,7 @@ inline constexpr float    player_max_speed    = 425.f;
 inline constexpr float    player_turn_speed   = 5.f;
 
 inline constexpr float    timer_game_start_animation_max = 3.f;
+inline constexpr float    timer_player_resurrection_max  = 3.f;
 
 inline constexpr float    weapon_cooldown_period = 1.5f;
 

@@ -124,6 +124,10 @@ inline void level_init(Registry& registry, GameState& game_state) {
     const Vector2 one_third  = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
     const Vector2 two_thirds = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
+    for (Entity dead_thing: registry.view<Dead>()) {
+
+    }
+
     std::vector<Entity> asteroids;
     for (uint8_t i = 0; i < game_state.remaining_asteroids; ++i) {
         float a_x = my_rng(0.f, two_thirds.x, Dist::Uniform);
@@ -164,17 +168,13 @@ inline void eraser(Registry& registry, GameState& game_state) {
         }
     }
 
-    for (auto b : registry.view<Bullet, Dead>()) {
-        registry.destroy(b);
-    }
-
-    for (auto a : registry.view<AsteroidShape, Size, Transform, Dead>()) {
+    for (Entity a : registry.view<AsteroidShape, Size, Transform, Dead>()) {
         game_state.remaining_asteroids--;
         registry.destroy(a);
     }
-    for (auto p : dead_particles) {
-        registry.destroy(p);
-    }
+
+    for (Entity b : registry.view<Bullet, Dead>()) { registry.destroy(b); }
+    for (Entity p : dead_particles) { registry.destroy(p); }
 }
 
 inline void level_progress(Registry& registry, GameState& game_state) {
@@ -317,13 +317,14 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
 inline void player_dies(Registry& registry, GameState& game_state, Entity player_id) {
     auto dead_ship_edges = registry.view<Line, Transform>();
     if (!dead_ship_edges.empty()) { 
-        for(Entity dead_ship_id : dead_ship_edges) {
+        ass
+        for (Entity dead_ship_id : dead_ship_edges) {
             auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_id);
             float t = dead_ship_edge_transform.rotation_speed * GetFrameTime();
             dead_ship_edge_transform.orientation += t;
         }
     } else {
-        registry.add(player_id, Dead{});
+        registry.add(player_id, Dead{ });
         auto& ship_transform = registry.get<Transform>(player_id);
         auto& ship = registry.get<PolygonShip>(player_id);
 
@@ -445,7 +446,7 @@ inline void render(Registry& registry) {
     //       and draw all our stuff.  that means we can just straight up
     //       call DrawLineEx without any problems or concerns
 
-    for (auto ship_id : registry.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
+    for (Entity ship_id : registry.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
         const auto& ship = registry.get<PolygonShip>(ship_id);
         const auto& transform = registry.get<Transform>(ship_id);
 
@@ -467,7 +468,7 @@ inline void render(Registry& registry) {
         }
     }
 
-    for (auto dead_ship_edge_id : registry.view<Line, Transform>()) {
+    for (Entity dead_ship_edge_id : registry.view<Line, Transform>()) {
         const auto& dead_ship_edge = registry.get<Line>(dead_ship_edge_id);
         const auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_edge_id);
 
@@ -540,13 +541,13 @@ inline void weapons_fire(Registry& registry) {
                 cosf(player_transform.orientation - PI/2.f) * bullet_length,
                 sinf(player_transform.orientation - PI/2.f) * bullet_length };
 
-            Entity bullet = registry.create();
-            registry.add(bullet, Bullet{
+            Entity new_bullet = registry.create();
+            registry.add(new_bullet, Bullet{
                 Line{ bullet_start, bullet_end, ORANGE, 2.5f },
                 bullet_speed,
                 bullet_age,
                 bullet_lifespan });
-            registry.add(bullet, Transform{
+            registry.add(new_bullet, Transform{
                 Vector2{
                     cosf(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.x,
                     sinf(player_transform.orientation - PI/2.f) * (bullet_offset_from_ship + (bullet_length / 2.f)) + player_transform.position.y },
@@ -566,16 +567,8 @@ inline void weapons_fire(Registry& registry) {
     std::vector<Entity> dead_bullets;
     for (Entity bullet_id : registry.view<Bullet>()) {
         auto& bullet = registry.get<Bullet>(bullet_id);
-
         bullet.age += GetFrameTime();
-
-        if (bullet.age >= bullet.lifespan) {
-            dead_bullets.push_back(bullet_id);
-        }
-    }
-
-    for (auto b : dead_bullets) {
-        registry.destroy(b);
+        if (bullet.age >= bullet.lifespan) { registry.add(bullet_id, Dead{}); }
     }
 }
 
