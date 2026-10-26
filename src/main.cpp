@@ -48,8 +48,8 @@ int main(void) {
             if (DEBUG_GAME) { }
 
             if (game_state.current_state == state_t::MENU) {
-                menu_draw(registry, assets, game_state);
-                menu_input(registry, assets, game_state);
+                menu_draw(registry, game_state, assets);
+                menu_input(registry, game_state, assets);
             }
             /*
             if (registry.game_state.current_state == state_t::PAUSED) {
@@ -57,7 +57,7 @@ int main(void) {
             }
             */
             if (game_state.current_state == state_t::NEW_GAME) {
-                draw_game_start_modal(registry, assets, game_state);
+                draw_game_start_modal(registry, game_state, assets);
             }
             if (game_state.current_state == state_t::PLAYING) {
                 player_input(registry, player_id);
@@ -69,17 +69,17 @@ int main(void) {
                 shield_color_update(registry);
                 level_progress(registry, game_state);
                 player_input(registry, player_id, true);
-                eraser(registry, game_state);
+                eraser(registry, game_state, assets, player_id);
                 render(registry);
             }
             if (game_state.current_state == state_t::DYING) {
-                player_dies(registry, game_state, player_id);
+                player_dies(registry, game_state, assets, player_id);
                 movement_update(registry);
-                eraser(registry, game_state);
+                eraser(registry, game_state, assets, player_id);
                 render(registry);
             }
             if (game_state.current_state == state_t::LEVEL_START) {
-                level_init(registry, game_state);
+                level_init(registry, game_state, player_id);
                 shield_color_update(registry, true);
             }
             if (game_state.current_state == state_t::LEVEL_CLEAR) {

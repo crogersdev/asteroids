@@ -79,7 +79,7 @@ inline void draw_debug_info() {
     DrawCircle(GetScreenWidth() / 2.f, GetScreenHeight() / 2.f, 2.f, WHITE);
 }
 
-inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
+inline void draw_game_start_modal(Registry& registry, GameState& game_state, std::shared_ptr<Assets> assets) {
     assets->game_start_animation_timer.current_time += GetFrameTime();
 
     if (assets->game_start_animation_timer.current_time >= 4.0f) {
@@ -120,16 +120,17 @@ inline void draw_game_start_modal(Registry& registry, std::shared_ptr<Assets> as
     EndBlendMode();
 }
 
-inline void level_init(Registry& registry, GameState& game_state) {
+inline void level_init(Registry& registry, GameState& game_state, Entity player_id) {
+    auto& player_transform = registry.get<Transform>(player_id);
+    player_transform.position = { SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2.f };
+    player_transform.velocity = { 0.f, 0.f };
+    player_transform.orientation = atan2(0.f, 1.f);
+
     const Vector2 one_third  = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
     const Vector2 two_thirds = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
-    for (Entity dead_thing: registry.view<Dead>()) {
-
-    }
-
     std::vector<Entity> asteroids;
-    for (uint8_t i = 0; i < game_state.remaining_asteroids; ++i) {
+    for (uint8_t i = game_state.remaining_asteroids; i < asteroids_per_level[game_state.level]; ++i) {
         float a_x = my_rng(0.f, two_thirds.x, Dist::Uniform);
         if (a_x > one_third.x) a_x += one_third.x;
 
@@ -143,29 +144,28 @@ inline void level_init(Registry& registry, GameState& game_state) {
         registry.add(asteroids.at(i), Size{ asteroid_radius, asteroid_size_t::LARGE });
         registry.add(asteroids.at(i), Transform{ { a_x, a_y }, { dir_x * asteroid_init_speed, dir_y * asteroid_init_speed }, 0.f, 0.f, 1.f, 0.f });
         registry.add(asteroids.at(i), AsteroidShape{ generate_asteroid_shape(asteroid_size_t::LARGE, asteroid_radius, RED, 1.25f) });
+        game_state.remaining_asteroids++;
     }
 
     game_state.current_state = state_t::PLAYING;
 }
 
-inline void eraser(Registry& registry, GameState& game_state) {
+inline void eraser(Registry& registry, GameState& game_state, std::shared_ptr<Assets> assets, Entity player_id) {
     std::vector<Entity> dead_particles;
 
     for (Entity particle_id : registry.view<Particle>()) {
+        // NOTE: I should refactor this to the asteroid blows up logic and then attach the dead tag
+        //       but ... eh.
         auto& particle_info = registry.get<Particle>(particle_id);
-
         particle_info.age += GetFrameTime();
-
-        if (particle_info.age >= particle_info.lifespan) {
-            dead_particles.push_back(particle_id);
-        }
+        if (particle_info.age >= particle_info.lifespan) { dead_particles.push_back(particle_id); }
     }
 
-    for (Entity dse : registry.view<Line, Transform, Dead>()) {
-        registry.destroy(dse);
-        if (dse == *registry.view<Line, Transform, Dead>().end()) {
-            game_state.current_state = state_t::LEVEL_START;
-        }
+    if (assets->player_resurrection_timer.current_time >= 2.0) {
+        registry.remove<Dead>(player_id);
+        game_state.current_state = state_t::LEVEL_START;
+        assets->player_resurrection_timer.current_time = 0.f;
+        for (Entity dse : registry.view<Line, Transform, Dead>()) { registry.destroy(dse); }
     }
 
     for (Entity a : registry.view<AsteroidShape, Size, Transform, Dead>()) {
@@ -184,7 +184,7 @@ inline void level_progress(Registry& registry, GameState& game_state) {
     DrawTextEx(GetFontDefault(), remaining.c_str(), asteroids_remaining_hud, 32.f, 1.f, MY_GOLD);
 }
 
-inline void menu_draw(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
+inline void menu_draw(Registry& registry, GameState& game_state, std::shared_ptr<Assets> assets) {
     float menu_title_font_size = 150.f;
     float menu_option_font_size = 48.f;
 
@@ -214,7 +214,7 @@ inline void menu_draw(Registry& registry, std::shared_ptr<Assets> assets, GameSt
     DrawTextEx(assets->menu_option_font, "quit", { horizontal_margin, vertical_margin }, menu_option_font_size, 2.f, menu_option_color);
 }
 
-inline void menu_input(Registry& registry, std::shared_ptr<Assets> assets, GameState& game_state) {
+inline void menu_input(Registry& registry, GameState& game_state, std::shared_ptr<Assets> assets) {
     if (IsKeyPressed(KEY_DOWN)) { game_state.nextMenuOption(game_state.menu_selected_option); }
     if (IsKeyPressed(KEY_UP))   { game_state.prevMenuOption(game_state.menu_selected_option); }
 
@@ -314,10 +314,11 @@ inline void player_collision(Registry& registry, GameState& game_state, Entity p
     } // end for each asteroid
 }
 
-inline void player_dies(Registry& registry, GameState& game_state, Entity player_id) {
+inline void player_dies(Registry& registry, GameState& game_state, std::shared_ptr<Assets> assets, Entity player_id) {
     auto dead_ship_edges = registry.view<Line, Transform>();
     if (!dead_ship_edges.empty()) { 
-        ass
+        assets->player_resurrection_timer.current_time += GetFrameTime();
+
         for (Entity dead_ship_id : dead_ship_edges) {
             auto& dead_ship_edge_transform = registry.get<Transform>(dead_ship_id);
             float t = dead_ship_edge_transform.rotation_speed * GetFrameTime();
@@ -331,6 +332,7 @@ inline void player_dies(Registry& registry, GameState& game_state, Entity player
         generate_particles(registry, ship_transform.position, atan2(ship_transform.velocity.y, ship_transform.velocity.x), PI/8.f, 200);
         for (int i = 0; i < 4; i++) {
             Entity dead_ship_edge = registry.create();
+            registry.add(dead_ship_edge, Dead{});
 
             auto world_position_start = Vector2Add(ship.lines[i].start, ship_transform.position);
             auto world_position_end   = Vector2Add(ship.lines[i].end,   ship_transform.position);

@@ -84,6 +84,13 @@ public:
     }
 
     template<typename T>
+    void remove(Entity e) {
+        get_pool<T>().erase(e);
+        auto& v = membership_index[e];
+        v.erase(std::remove(v.begin(), v.end(), std::type_index(typeid(T))), v.end());
+    }
+
+    template<typename T>
     void add(Entity e, T component) {
         get_pool<T>()[e] = std::move(component);
 

@@ -51,7 +51,7 @@ struct GameState {
         lives = 5;
         level = 0;
         score = 0;
-        remaining_asteroids = asteroids_per_level[0];
+        remaining_asteroids = 0;
       };
 
     inline void nextMenuOption(menu_options_t& current) {
