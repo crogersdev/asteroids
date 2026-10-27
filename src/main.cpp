@@ -14,25 +14,25 @@ int main(void) {
     SetTargetFPS(60);
 
     std::shared_ptr<Assets> assets = std::make_shared<Assets>(); 
-    Registry registry = Registry();
-    Entity player_id = registry.create();
-    GameState game_state(player_id);
+    Registry r = Registry();
+    Entity player_id = r.create();
+    GameState gs(player_id);
 
-    registry.add(player_id, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
-    registry.add(player_id, PlayerInput{ false, false, false, false });
-    registry.add(player_id, Weapon{
+    r.add(player_id, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
+    r.add(player_id, PlayerInput{ false, false, false, false });
+    r.add(player_id, Weapon{
         player_max_ammo,
         0.f,
         weapon_cooldown_period,
         true });
-    registry.add(player_id, PolygonShip{{
+    r.add(player_id, PolygonShip{{
         Line{{ -10.f,  +4.f }, {   0.f, -14.f }, RED, 1.5f },
         Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE, 1.5f },
         Line{{ +10.f,  +4.f }, {   0.f,   0.f }, GREEN, 1.5f },
         Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW, 1.5f }}, 
         player_max_speed,
         player_acceleration });
-    registry.add(player_id, crogersdev::Transform{
+    r.add(player_id, crogersdev::Transform{
         SCREEN_CENTER,
         { 0.f, 0.f },
         atan2(0.f, 1.f),
@@ -47,42 +47,41 @@ int main(void) {
 
             if (DEBUG_GAME) { }
 
-            if (game_state.current_state == state_t::MENU) {
-                menu_draw(registry, game_state, assets);
-                menu_input(registry, game_state, assets);
+            if (gs.current_state == state_t::MENU) {
+                menu_draw(r, gs, assets);
+                menu_input(r, gs, assets);
             }
             /*
-            if (registry.game_state.current_state == state_t::PAUSED) {
+            if (r.gs.current_state == state_t::PAUSED) {
                 std::cout << "foo\n";
             }
             */
-            if (game_state.current_state == state_t::NEW_GAME) {
-                draw_game_start_modal(registry, game_state, assets);
+            if (gs.current_state == state_t::NEW_GAME) {
+                draw_game_start_modal(r, gs, assets);
             }
-            if (game_state.current_state == state_t::PLAYING) {
-                player_input(registry, player_id);
-                bullet_collision(registry, game_state);
-                player_collision(registry, game_state, player_id);
-                player_scoot_and_rotate(registry);
-                movement_update(registry);
-                weapons_fire(registry);
-                shield_color_update(registry);
-                level_progress(registry, game_state);
-                player_input(registry, player_id, true);
-                eraser(registry, game_state, assets, player_id);
-                render(registry);
+            if (gs.current_state == state_t::PLAYING) {
+                player_input(r, player_id);
+                bullet_collision(r, gs);
+                player_collision(r, gs, player_id);
+                player_scoot_and_rotate(r);
+                movement_update(r);
+                weapons_fire(r);
+                shield_color_update(r);
+                player_input(r, player_id, true);
+                eraser(r, gs, assets, player_id);
+                render(r, gs);
             }
-            if (game_state.current_state == state_t::DYING) {
-                player_dies(registry, game_state, assets, player_id);
-                movement_update(registry);
-                eraser(registry, game_state, assets, player_id);
-                render(registry);
+            if (gs.current_state == state_t::DYING) {
+                player_dies(r, gs, assets, player_id);
+                movement_update(r);
+                eraser(r, gs, assets, player_id);
+                render(r, gs);
             }
-            if (game_state.current_state == state_t::LEVEL_START) {
-                level_init(registry, game_state, player_id);
-                shield_color_update(registry, true);
+            if (gs.current_state == state_t::LEVEL_START) {
+                level_init(r, gs, player_id);
+                shield_color_update(r, true);
             }
-            if (game_state.current_state == state_t::LEVEL_CLEAR) {
+            if (gs.current_state == state_t::LEVEL_CLEAR) {
 
             }
 

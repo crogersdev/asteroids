@@ -119,7 +119,7 @@ public:
         //       we can use membership_index as map(entity_id -> list of components)
         //       and then iterate through erasers which is
         //       map(component type -> erase function(entity))
-        //       which let's us NOT iterate through all components in the registry
+        //       which let's us NOT iterate through all components in the r
         //       looking for our entity and instead just know ahead of time
         //       which component types our entity belongs to
         //       then erase our entity from every component pool it belongs to.

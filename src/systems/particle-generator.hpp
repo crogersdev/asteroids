@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../entities.hpp"
 #include "../components.hpp"
 #include "../constants.hpp"
+#include "../entities.hpp"
 #include "../helpers/math-stuff.hpp"
 
 namespace crogersdev {
 
 inline void generate_particles(
-    Registry& registry,
+    Registry& r,
     Vector2 position,
     float orientation = 0.f,
     float scatter_cone_theta = PI,
@@ -20,13 +20,13 @@ inline void generate_particles(
         float particle_radius = my_rng(3.5f, .5f, Dist::Normal);
         float particle_lifespan = my_rng(.1f, .75f, Dist::Normal);
 
-        Entity particle = registry.create();
-        registry.add(particle, Particle{
+        Entity particle = r.create();
+        r.add(particle, Particle{
             particle_age,
             particle_lifespan,
             particle_radius,
             WHITE });
-        registry.add(particle, Transform{
+        r.add(particle, Transform{
             position,
             { cos(particle_theta) * particle_speed, sin(particle_theta) * particle_speed },
             0.f,
