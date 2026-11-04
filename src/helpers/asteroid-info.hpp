@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 namespace crogersdev {
 
 enum class asteroid_size_t {
@@ -11,6 +13,7 @@ enum class asteroid_size_t {
     ZERO   = TINY
 };
 
+std::ostream& operator<<(std::ostream&, const asteroid_size_t&);
 asteroid_size_t operator+(asteroid_size_t, int);
 asteroid_size_t operator+(int, asteroid_size_t);
 asteroid_size_t operator-(asteroid_size_t, int);

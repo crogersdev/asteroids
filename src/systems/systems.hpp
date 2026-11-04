@@ -57,7 +57,7 @@ inline void bullet_collision(Registry& r, GameState& gs) {
                             { cosf(new_theta) * new_speed, sinf(new_theta) * new_speed },
                             new_theta);
 
-                        gs.remaining_asteroids++;
+                        gs.remaining_asteroids[asteroid_size.size-1] += 1;
                     }
                 }
 
@@ -123,8 +123,7 @@ inline void level_init(Registry& r, GameState& gs, Entity player_id) {
     pt.velocity = { 0.f, 0.f };
     pt.orientation = atan2(0.f, 1.f);
 
-    spawn_asteroids(r, gs, asteroids_per_level[gs.level]);
-    spawn_asteroids_for_level(r, gs, );
+    spawn_asteroids_for_level(r, gs, asteroids_per_level[gs.level]);
     
     r.remove<Dead>(player_id);
     gs.current_state = state_t::PLAYING;
@@ -148,7 +147,8 @@ inline void eraser(Registry& r, GameState& gs, std::shared_ptr<Assets> assets, E
     }
 
     for (Entity a : r.view<AsteroidShape, Size, Transform, Dead>()) {
-        gs.remaining_asteroids--;
+        auto size = r.get<Size>(a);
+        gs.remaining_asteroids[size.size]--;
         r.destroy(a);
     }
 
@@ -415,11 +415,6 @@ inline void shield_color_update(Registry& r, bool reset = false) {
 }
 
 inline void render(Registry& r, GameState gs) {
-    // note: raylib's approach is to have global access to raylib managed
-    //       resources.  in this case, that's the window to which we render
-    //       and draw all our stuff.  that means we can just straight up
-    //       call DrawLineEx without any problems or concerns
-
     for (Entity ship_id : r.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
         const auto& ship = r.get<PolygonShip>(ship_id);
         const auto& transform = r.get<Transform>(ship_id);
@@ -492,7 +487,10 @@ inline void render(Registry& r, GameState gs) {
 
     float corner = .1f;
     Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, SCREEN_HEIGHT - SCREEN_HEIGHT * corner };
-    std::string remaining = std::to_string(gs.remaining_asteroids);
+    uint32_t remaining_asteroids = 0;
+    for (const auto& [size, count] : gs.remaining_asteroids) { remaining_asteroids += count; }
+
+    std::string remaining = std::to_string(remaining_asteroids);
     DrawTextEx(GetFontDefault(), remaining.c_str(), asteroids_remaining_hud, 32.f, 1.f, MY_GOLD);
 }
 

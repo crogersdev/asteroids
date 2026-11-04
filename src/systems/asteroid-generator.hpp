@@ -4,6 +4,7 @@
 #include "../constants.hpp"
 #include "../entities.hpp"
 #include "../helpers/asteroid-info.hpp"
+#include "../helpers/game-state.hpp"
 #include "../helpers/math-stuff.hpp"
 
 #include <vector>
@@ -47,11 +48,14 @@ inline void spawn_asteroid(Registry& r, Entity id, uint32_t radius, asteroid_siz
     r.add(id, AsteroidShape{ generate_asteroid_shape(sz, radius, RED, 1.25f) });
 }
 
-inline void spawn_asteroids_for_level(Registry& r, GameState gs, uint32_t total) {
+inline void spawn_asteroids_for_level(Registry& r, GameState& gs, uint32_t total) {
     const Vector2 one_third  = { SCREEN_WIDTH / 3.f, SCREEN_HEIGHT / 3.f };
     const Vector2 two_thirds = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
-    for (uint8_t i = 0; i < total; ++i) {
+    uint32_t remaining = 0;
+    for (const auto& [size, count] : gs.remaining_asteroids) { remaining += count; }
+
+    for (uint8_t i = remaining; i < total; ++i) {
         Vector2 pos{};
         pos.x = my_rng(0.f, two_thirds.x, Dist::Uniform);
         if (pos.x > one_third.x) pos.x += one_third.x;
@@ -63,7 +67,7 @@ inline void spawn_asteroids_for_level(Registry& r, GameState gs, uint32_t total)
         Vector2 vel = { cosf(theta) * asteroid_init_speed, sinf(theta) * asteroid_init_speed };
         spawn_asteroid(r, r.create(), asteroid_radius, asteroid_size_t::LARGE, pos, vel, theta);
 
-        gs.remaining_asteroids++;
+        gs.remaining_asteroids[asteroid_size_t::LARGE] += 1;
     }
 }
 

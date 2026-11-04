@@ -3,6 +3,7 @@
 #include "../constants.hpp"
 
 #include <iostream>
+#include <map>
 #include <set>
 #include <utility>
 
@@ -33,10 +34,9 @@ struct GameState {
     int level;
     int lives;
     int score;
-    int remaining_asteroids;
+    std::map<asteroid_size_t, uint16_t> remaining_asteroids;
 
     Entity player_id;
-
     menu_options_t menu_selected_option;
     state_t current_state;
 
@@ -51,7 +51,6 @@ struct GameState {
         lives = 5;
         level = 0;
         score = 0;
-        remaining_asteroids = 0;
       };
 
     inline void nextMenuOption(menu_options_t& current) {
@@ -67,6 +66,12 @@ struct GameState {
             case menu_options_t::START:    current = menu_options_t::QUIT;     break;
             case menu_options_t::SETTINGS: current = menu_options_t::START;    break;
             case menu_options_t::QUIT:     current = menu_options_t::SETTINGS; break;
+        }
+    };
+
+    inline void printRemainingAsteroids() {
+        for (const auto& asteroid : remaining_asteroids) {
+            std::cout << asteroid.first << "\t" << asteroid.second << "\n";
         }
     };
 };
