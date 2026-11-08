@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../components.hpp"
+
 #include <tuple>
 
 #include <raylib.h>
@@ -7,7 +9,11 @@
 
 namespace crogersdev {
 
-inline std::tuple<Vector2, Vector2> compute_collision_velocities(Vector2 va, Vector2 vb, Vector2 pa, Vector2 pb, float ma, float mb) {
+inline std::tuple<Vector2, Vector2> compute_collision_velocities(
+    Vector2 va, Vector2 vb, 
+    Vector2 pa, Vector2 pb,
+    float ma, float mb) {
+
     const Vector2 n = Vector2Normalize(Vector2Subtract(pa, pb));
     const Vector2 t = Vector2Rotate(n, PI / 2.f);
     const float na = Vector2DotProduct(va, n);
@@ -23,6 +29,10 @@ inline std::tuple<Vector2, Vector2> compute_collision_velocities(Vector2 va, Vec
         Vector2Add(Vector2Scale(n, na_prime), Vector2Scale(t, ta)),
         Vector2Add(Vector2Scale(n, nb_prime), Vector2Scale(t, tb))
     };
+}
+
+inline std::tuple<Vector2, Vector2> compute_collision_velocities(crogersdev::Transform a, crogersdev::Transform b) {
+    return compute_collision_velocities(a.velocity, b.velocity, a.position, b.position, a.mass, b.mass);
 }
 
 } // end namespace

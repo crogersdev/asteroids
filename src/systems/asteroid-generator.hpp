@@ -7,6 +7,7 @@
 #include "../helpers/game-state.hpp"
 #include "../helpers/math-stuff.hpp"
 
+#include <cmath>
 #include <vector>
 #include <raylib.h>
 
@@ -44,8 +45,15 @@ inline std::vector<Line> generate_asteroid_shape(asteroid_size_t size, uint32_t 
 
 inline void spawn_asteroid(Registry& r, Entity id, uint32_t radius, asteroid_size_t sz, Vector2 pos, Vector2 vel, float theta) {
     r.add(id, Size{ radius, sz });
-    r.add(id, Transform{ pos, vel, theta, 0.f, 1.f, 0.f });
+    r.add(id, Transform{ pos, vel, theta, 0.f, 1.f, pow(1.825f, static_cast<float>(sz)) });
     r.add(id, AsteroidShape{ generate_asteroid_shape(sz, radius, RED, 1.25f) });
+    switch (sz) {
+        case asteroid_size_t::LARGE:  r.add(id, DamageMultiplier{ 10.f  }); break;
+        case asteroid_size_t::MEDIUM: r.add(id, DamageMultiplier{  5.f  }); break;
+        case asteroid_size_t::SMALL:  r.add(id, DamageMultiplier{  2.5f }); break;
+        case asteroid_size_t::TINY:   r.add(id, DamageMultiplier{   .1f }); break;
+        default: break;
+    }
 }
 
 inline void spawn_asteroids_for_level(Registry& r, GameState& gs, uint32_t total) {
@@ -53,9 +61,11 @@ inline void spawn_asteroids_for_level(Registry& r, GameState& gs, uint32_t total
     const Vector2 two_thirds = { 2.f*SCREEN_WIDTH / 3.f, 2.f*SCREEN_HEIGHT / 3.f };
 
     uint32_t remaining = 0;
-    for (const auto& [size, count] : gs.remaining_asteroids) { remaining += count; }
+    for (const auto& [size, count] : gs.remaining_asteroids) { 
+        remaining += count;
+    }
 
-    for (uint8_t i = remaining; i < total; ++i) {
+    for (uint32_t i = remaining; i < total; ++i) {
         Vector2 pos{};
         pos.x = my_rng(0.f, two_thirds.x, Dist::Uniform);
         if (pos.x > one_third.x) pos.x += one_third.x;
@@ -67,7 +77,10 @@ inline void spawn_asteroids_for_level(Registry& r, GameState& gs, uint32_t total
         Vector2 vel = { cosf(theta) * asteroid_init_speed, sinf(theta) * asteroid_init_speed };
         spawn_asteroid(r, r.create(), asteroid_radius, asteroid_size_t::LARGE, pos, vel, theta);
 
-        gs.remaining_asteroids[asteroid_size_t::LARGE] += 1;
+        gs.remaining_asteroids[asteroid_size_t::LARGE]  += 1;
+        gs.remaining_asteroids[asteroid_size_t::MEDIUM] += 2;
+        gs.remaining_asteroids[asteroid_size_t::SMALL]  += 4;
+        gs.remaining_asteroids[asteroid_size_t::TINY]   += 8;
     }
 }
 

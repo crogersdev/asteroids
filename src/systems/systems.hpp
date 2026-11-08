@@ -56,8 +56,6 @@ inline void bullet_collision(Registry& r, GameState& gs) {
                             asteroid_transform.position,
                             { cosf(new_theta) * new_speed, sinf(new_theta) * new_speed },
                             new_theta);
-
-                        gs.remaining_asteroids[asteroid_size.size-1] += 1;
                     }
                 }
 
@@ -238,9 +236,11 @@ inline void player_collision(Registry& r, GameState& gs, Entity player_id) {
     auto& ship_transform = r.get<Transform>(player_id);
     auto& ship_shield = r.get<Shield>(player_id);
 
-    for (Entity asteroid_id : r.view<AsteroidShape, Size, Transform, Registry::Exclude<Dead>>()) {
+    for (Entity asteroid_id : r.view<AsteroidShape, Size, Transform, DamageMultiplier, Registry::Exclude<Dead>>()) {
         const auto& asteroid_size = r.get<Size>(asteroid_id);
         const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
+        const auto asteroid_damage = r.get<DamageMultiplier>(asteroid_id);
+        float damage = asteroid_damage.xdamage;
 
         auto& asteroid_transform = r.get<Transform>(asteroid_id);
 
@@ -259,7 +259,7 @@ inline void player_collision(Registry& r, GameState& gs, Entity player_id) {
 
         colliding_objects.insert(p);
 
-        if (ship_shield.energy_remaining <= sz * asteroid_damage) {
+        if (ship_shield.energy_remaining <= sz * damage) {
             gs.lives--;
             if (gs.lives > 0) {
                 gs.current_state = state_t::DYING;
@@ -270,19 +270,10 @@ inline void player_collision(Registry& r, GameState& gs, Entity player_id) {
             }
         }
 
-        if (asteroid_size.size == asteroid_size_t::LARGE) {
-            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
-            ship_shield.energy_remaining -= sz * asteroid_damage;
-        } else if (asteroid_size.size == asteroid_size_t::MEDIUM) {
-            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 20.f);
-            ship_shield.energy_remaining -= sz * asteroid_damage / 2.f;
-        } else if (asteroid_size.size == asteroid_size_t::SMALL) {
-            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 8.f);
-            ship_shield.energy_remaining -= sz * asteroid_damage / 4.f;
-        } else if (asteroid_size.size == asteroid_size_t::TINY) {
-            std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(ship_transform.velocity, asteroid_transform.velocity, ship_transform.position, asteroid_transform.position, 10.f, 1.f);
-            ship_shield.energy_remaining -= sz * asteroid_damage / 10.f;
-        }
+        std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(
+            ship_transform,
+            asteroid_transform);
+        ship_shield.energy_remaining -= sz * damage;
     } // end for each asteroid
 }
 
@@ -414,7 +405,7 @@ inline void shield_color_update(Registry& r, bool reset = false) {
     }
 }
 
-inline void render(Registry& r, GameState gs) {
+inline void render(Registry& r, const GameState& gs) {
     for (Entity ship_id : r.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
         const auto& ship = r.get<PolygonShip>(ship_id);
         const auto& transform = r.get<Transform>(ship_id);
@@ -486,12 +477,20 @@ inline void render(Registry& r, GameState gs) {
     }
 
     float corner = .1f;
-    Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, SCREEN_HEIGHT - SCREEN_HEIGHT * corner };
-    uint32_t remaining_asteroids = 0;
-    for (const auto& [size, count] : gs.remaining_asteroids) { remaining_asteroids += count; }
-
-    std::string remaining = std::to_string(remaining_asteroids);
-    DrawTextEx(GetFontDefault(), remaining.c_str(), asteroids_remaining_hud, 32.f, 1.f, MY_GOLD);
+    float font_size = 22.f;
+    Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, (SCREEN_HEIGHT - SCREEN_HEIGHT * corner) - 4.f * font_size  };
+    int hud_row = 1;
+    // for (asteroid_size_t size = asteroid_size_t::TINY; size < )
+    std::string remaining;
+    for (auto size : all_asteroid_sizes) {
+        if (gs.remaining_asteroids.find(size) != gs.remaining_asteroids.end()) {
+            remaining = std::to_string(gs.remaining_asteroids.at(size));
+        }
+    
+        Vector2 pos = { asteroids_remaining_hud.x, asteroids_remaining_hud.y + hud_row++ * (font_size + 3.f) };
+        DrawTextEx(GetFontDefault(), to_c_str(size), { pos.x - 80.f, pos.y }, font_size, 1.f, MY_GOLD);
+        DrawTextEx(GetFontDefault(), remaining.c_str(), pos, font_size, 1.f, MY_GOLD);
+    }
 }
 
 inline void weapons_fire(Registry& r) {

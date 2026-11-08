@@ -37,7 +37,9 @@ int main(void) {
         { 0.f, 0.f },
         atan2(0.f, 1.f),
         player_turn_speed,
-        player_drag_coeff });
+        player_drag_coeff,
+        player_mass
+        });
 
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();

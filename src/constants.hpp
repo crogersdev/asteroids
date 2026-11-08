@@ -21,7 +21,6 @@ inline constexpr Vector2 SCREEN_CENTER = { SCREEN_WIDTH / 2.f, SCREEN_HEIGHT / 2
 
 inline constexpr std::array<int, 11> asteroids_per_level = { 1, 3, 5, 5, 5, 6, 6, 6, 6, 8, 10 };
 inline constexpr float    asteroid_init_speed = 125.f;
-inline constexpr uint32_t asteroid_damage     = 10;
 inline constexpr float    asteroid_max_speed  = 200.f;
 inline constexpr float    asteroid_min_speed  = 100.f;
 inline constexpr uint32_t asteroid_radius     = 12;
@@ -38,6 +37,7 @@ inline constexpr float    shield_max_energy   = 99.f;
 
 inline constexpr float    player_acceleration = 750.f;
 inline constexpr float    player_drag_coeff   = .995;
+inline constexpr float    player_mass         = 10.f;
 inline constexpr uint32_t player_max_ammo     = 999;
 inline constexpr float    player_max_speed    = 425.f;
 inline constexpr float    player_turn_speed   = 5.f;

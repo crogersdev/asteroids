@@ -34,7 +34,7 @@ struct GameState {
     int level;
     int lives;
     int score;
-    std::map<asteroid_size_t, uint16_t> remaining_asteroids;
+    std::map<asteroid_size_t, uint32_t> remaining_asteroids;
 
     Entity player_id;
     menu_options_t menu_selected_option;
