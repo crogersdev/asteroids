@@ -7,6 +7,7 @@
 #include "../constants.hpp"
 #include "../entities.hpp"
 #include "../helpers/assets-mgr.hpp"
+#include "../helpers/color-stuff.hpp"
 #include "../helpers/game-state.hpp"
 #include "../helpers/math-stuff.hpp"
 #include "../helpers/physics.hpp"
@@ -27,7 +28,7 @@ inline void bullet_collision(Registry& r, GameState& gs) {
     for (Entity bullet_id : r.view<Bullet, Transform, Registry::Exclude<Dead>>()) {
         const auto& bullet_transform = r.get<Transform>(bullet_id);
 
-        for (Entity asteroid_id : r.view<AsteroidShape, Size, Transform, Registry::Exclude<Dead>>()) {
+        for (Entity asteroid_id : r.view<Polygon, Size, Transform, Registry::Exclude<Dead>>()) {
             const auto& asteroid_transform = r.get<Transform>(asteroid_id);
             const auto& asteroid_size = r.get<Size>(asteroid_id);
             const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
@@ -144,7 +145,7 @@ inline void eraser(Registry& r, GameState& gs, std::shared_ptr<Assets> assets, E
         for (Entity dse : r.view<Line, Transform, Dead>()) { r.destroy(dse); }
     }
 
-    for (Entity a : r.view<AsteroidShape, Size, Transform, Dead>()) {
+    for (Entity a : r.view<Polygon, Size, Transform, Dead>()) {
         auto size = r.get<Size>(a);
         gs.remaining_asteroids[size.size]--;
         r.destroy(a);
@@ -236,7 +237,7 @@ inline void player_collision(Registry& r, GameState& gs, Entity player_id) {
     auto& ship_transform = r.get<Transform>(player_id);
     auto& ship_shield = r.get<Shield>(player_id);
 
-    for (Entity asteroid_id : r.view<AsteroidShape, Size, Transform, DamageMultiplier, Registry::Exclude<Dead>>()) {
+    for (Entity asteroid_id : r.view<Polygon, Size, Transform, DamageMultiplier, Registry::Exclude<Dead>>()) {
         const auto& asteroid_size = r.get<Size>(asteroid_id);
         const uint32_t sz = static_cast<uint32_t>(asteroid_size.size);
         const auto asteroid_damage = r.get<DamageMultiplier>(asteroid_id);
@@ -270,9 +271,7 @@ inline void player_collision(Registry& r, GameState& gs, Entity player_id) {
             }
         }
 
-        std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities(
-            ship_transform,
-            asteroid_transform);
+        std::tie(ship_transform.velocity, asteroid_transform.velocity) = compute_collision_velocities( ship_transform, asteroid_transform);
         ship_shield.energy_remaining -= sz * damage;
     } // end for each asteroid
 }
@@ -381,14 +380,14 @@ inline void sound_player(Registry& r) {
 
 }
 
-inline void shield_color_update(Registry& r, bool reset = false) {
+inline void shield_color_update(Registry& r, GameState gs, bool reset = false) {
     Entity shield_id = r.view<Shield>().front();
     auto& shield = r.get<Shield>(shield_id);
 
     if (reset) { shield.energy_remaining = shield_max_energy; }
 
     if (shield.energy_remaining > 0.f) {
-        auto palette = neon_synth_palette;
+        auto palette = gs.shield_palette;
         if (shield.energy_remaining <= shield.energy_max && shield.energy_remaining >= shield.energy_max * .666f) {
             shield.pivot_start = palette.full.start;
             shield.pivot_end   = palette.full.end,
@@ -405,7 +404,7 @@ inline void shield_color_update(Registry& r, bool reset = false) {
     }
 }
 
-inline void render(Registry& r, const GameState& gs) {
+inline void render(Registry& r, const GameState& gs, Entity player_id) {
     for (Entity ship_id : r.view<PolygonShip, Shield, Transform, Registry::Exclude<Dead>>()) {
         const auto& ship = r.get<PolygonShip>(ship_id);
         const auto& transform = r.get<Transform>(ship_id);
@@ -444,8 +443,8 @@ inline void render(Registry& r, const GameState& gs) {
         DrawLineEx(start, end, dead_ship_edge.thickness, dead_ship_edge.color);
     }
 
-    for (Entity asteroid_id : r.view<AsteroidShape, Transform>()) {
-        const auto& asteroid_shape = r.get<AsteroidShape>(asteroid_id);
+    for (Entity asteroid_id : r.view<Polygon, Transform, Registry::Exclude<HUD>>()) {
+        const auto& asteroid_shape = r.get<Polygon>(asteroid_id);
         const auto& transform = r.get<Transform>(asteroid_id);
         Vector2 pos = transform.position;
 
@@ -476,20 +475,65 @@ inline void render(Registry& r, const GameState& gs) {
         DrawCircleGradient(particle_transform.position, particle.radius, particle.color, BLACK);
     }
 
-    float corner = .1f;
-    float font_size = 22.f;
-    Vector2 asteroids_remaining_hud = { SCREEN_WIDTH - SCREEN_WIDTH * corner, (SCREEN_HEIGHT - SCREEN_HEIGHT * corner) - 4.f * font_size  };
-    int hud_row = 1;
-    // for (asteroid_size_t size = asteroid_size_t::TINY; size < )
-    std::string remaining;
-    for (auto size : all_asteroid_sizes) {
-        if (gs.remaining_asteroids.find(size) != gs.remaining_asteroids.end()) {
-            remaining = std::to_string(gs.remaining_asteroids.at(size));
+    for (Entity hud_id : r.view<HUDRect, Transform>()) {
+        const auto& enclosure = r.get<HUDRect>(hud_id);
+        const auto& transform = r.get<Transform>(hud_id);
+        auto pos = transform.position;
+
+        auto x = enclosure.rec.x + pos.x;
+        auto y = enclosure.rec.y + pos.y;
+        Rectangle rect = { x, y, enclosure.rec.width, enclosure.rec.height };
+        DrawRectangleRoundedLinesEx(rect, .5f, 8, enclosure.thickness, enclosure.color);
+        x += enclosure.padding + 24.f;
+        y += enclosure.padding;
+     }
+
+    for (Entity hud_id : r.view<HUDRect, Polygon, Transform>()) {
+        const auto& enclosure = r.get<HUDRect>(hud_id);
+        const auto& transform = r.get<Transform>(hud_id);
+        auto pos = transform.position;
+
+        auto x = enclosure.rec.x + pos.x;
+        auto y = enclosure.rec.y + pos.y;
+        Rectangle rect = { x, y, enclosure.rec.width, enclosure.rec.height };
+        DrawRectangleRoundedLinesEx(rect, .5f, 8, enclosure.thickness, enclosure.color);
+        x += enclosure.padding + 10.f;
+        y += enclosure.padding + 12.f;
+        const auto& ship_glyph = r.get<Polygon>(hud_id);
+        for (int life = 0; life < gs.lives; life++) {
+            for (const auto& edge : ship_glyph.lines) {
+                DrawLineEx(
+                    { edge.start.x + x, edge.start.y + y },
+                    { edge.end.x   + x, edge.end.y   + y },
+                    edge.thickness,
+                    edge.color);
+            }
+            x += 15.f;
         }
-    
-        Vector2 pos = { asteroids_remaining_hud.x, asteroids_remaining_hud.y + hud_row++ * (font_size + 3.f) };
-        DrawTextEx(GetFontDefault(), to_c_str(size), { pos.x - 80.f, pos.y }, font_size, 1.f, MY_GOLD);
-        DrawTextEx(GetFontDefault(), remaining.c_str(), pos, font_size, 1.f, MY_GOLD);
+    }
+
+    for (Entity hud_id : r.view<HUDBar, HUDRect, Transform>()) {
+        uint32_t remaining = 0;
+        for (auto size : all_asteroid_sizes) {
+            if (gs.remaining_asteroids.find(size) != gs.remaining_asteroids.end()) {
+                remaining += gs.remaining_asteroids.at(size);
+            }
+        }
+
+        const auto& enclosure = r.get<HUDRect>(hud_id);
+        const auto& remaining_asteroids_bar = r.get<HUDBar>(hud_id);
+        const auto& transform = r.get<Transform>(hud_id);
+        auto pos = transform.position;
+
+        auto x = enclosure.rec.x + pos.x;
+        auto y = enclosure.rec.y + pos.y;
+        Rectangle rect = { x, y, enclosure.rec.width, enclosure.rec.height };
+        DrawRectangleRoundedLinesEx(rect, .5f, 8, enclosure.thickness, enclosure.color);
+        x += enclosure.padding;
+        y += enclosure.padding;
+        float s = static_cast<float>(remaining) / static_cast<float>(15 * asteroids_per_level[gs.level]);
+        rect = { x, y, remaining_asteroids_bar.bar.width * s, remaining_asteroids_bar.bar.height };
+        DrawRectangleRec(rect, remaining_asteroids_bar.color);
     }
 }
 

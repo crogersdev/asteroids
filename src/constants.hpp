@@ -1,11 +1,14 @@
 #pragma once
 
+#include "components.hpp"
+
 #include <array>
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string_view>
 #include <raylib.h>
+
 
 namespace crogersdev {
 
@@ -42,6 +45,13 @@ inline constexpr uint32_t player_max_ammo     = 999;
 inline constexpr float    player_max_speed    = 425.f;
 inline constexpr float    player_turn_speed   = 5.f;
 
+inline constexpr std::array<Line, 4> player_polygon_shape = {
+    Line{{ -10.f,  +4.f }, {   0.f, -14.f }, RED, 1.5f },
+    Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE, 1.5f },
+    Line{{ +10.f,  +4.f }, {   0.f,   0.f }, GREEN, 1.5f },
+    Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW, 1.5f }
+};
+
 inline constexpr float    timer_game_start_animation_max = 3.f;
 inline constexpr float    timer_player_resurrection_max  = 3.f;
 
@@ -52,28 +62,28 @@ struct ColorPair {
     Color end;
 };
 
-struct ShieldGradientPalette {
+struct GradientPalette {
     ColorPair full;
     ColorPair half;
     ColorPair dead;
 };
 
 // Palette 1: Standard Hazard Shield (Full Power -> Critical -> Failing)
-inline constexpr ShieldGradientPalette shield_status_palette{
+inline constexpr GradientPalette green_yellow_red{
     .full = { Color{ 0,   100, 0,   255 }, Color{ 0,   255, 0,   255 } }, // Dark Green -> Bright Green
     .half = { Color{ 0,   255, 0,   255 }, Color{ 255, 255, 0,   255 } }, // Bright Green -> Yellow
     .dead = { Color{ 255, 255, 0,   255 }, Color{ 255, 0,   0,   255 } }  // Yellow -> Red
 };
 
 // Palette 2: Plasma Neon Shield (Overcharged -> Stable -> Depleted Void)
-inline constexpr ShieldGradientPalette neon_synth_palette{
+inline constexpr GradientPalette neon_synth{
     .full = { Color{ 0,   240, 255, 255 }, Color{ 180, 0,   255, 255 } }, // Hyper Blue -> Stable Purple
     .half = { Color{ 180, 0,   255, 255 }, Color{ 255, 0,   128, 255 } }, // Stable Purple -> Low Battery Pink
     .dead = { Color{ 255, 0,   128, 255 }, Color{ 20,  0,   40,  0 } }    // Low Battery Pink -> Offline Void (Alpha 0)
 };
 
 // Palette 3: Obsidian Overload Shield (Volcanic - Melting down to cooled ash)
-inline constexpr ShieldGradientPalette solar_eclipse_palette{
+inline constexpr GradientPalette solar_eclipse{
     .full = { Color{ 255, 220, 0,   255 }, Color{ 255, 80,  0,   255 } }, // Solar Gold -> Lava Orange
     .half = { Color{ 255, 80,  0,   255 }, Color{ 90,  20,  20,  255 } }, // Lava Orange -> Smoldering Crimson
     .dead = { Color{ 90,  20,  20,  255 }, Color{ 30,  30,  35,  50 } }   // Smoldering Crimson -> Cooled Ash (Faded)

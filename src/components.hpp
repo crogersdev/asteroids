@@ -1,23 +1,24 @@
 #pragma once
 
 #include "helpers/asteroid-info.hpp"
-#include "constants.hpp"
 
 #include <array>
-#include <cstdint>
-#include <string>
 #include <vector>
-#include <unordered_map>
 #include <raylib.h>
 
 namespace crogersdev {
 
+struct Circle            { Vector2 center; float radius, thickness; Color color; };
+struct HUDText           { float font_size; Font font; Color color; Shader shader; };
 struct Line              { Vector2 start, end; Color color; float thickness; };
+struct Polygon           { std::vector<Line> lines; };
 
-struct AsteroidShape     { std::vector<Line> lines; };
 struct Bullet            { Line bullet; float speed, age, lifespan; };
 struct DamageMultiplier  { float xdamage; };
 struct Dead              { };
+struct HUD               { };
+struct HUDBar            { float percent_full; Rectangle bar; Color color; };
+struct HUDRect           { HUDText hud; Rectangle rec; float padding, corner_radius, thickness; Color color; };
 struct Particle          { float age, lifespan, radius; Color color; };
 struct PlayerInput       { bool thrust, shoot, rotate_left, rotate_right; };
 struct PolygonShip       { std::array<Line, 4> lines; float max_speed, acceleration; };

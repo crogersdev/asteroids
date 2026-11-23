@@ -46,7 +46,7 @@ inline std::vector<Line> generate_asteroid_shape(asteroid_size_t size, uint32_t 
 inline void spawn_asteroid(Registry& r, Entity id, uint32_t radius, asteroid_size_t sz, Vector2 pos, Vector2 vel, float theta) {
     r.add(id, Size{ radius, sz });
     r.add(id, Transform{ pos, vel, theta, 0.f, 1.f, pow(1.825f, static_cast<float>(sz)) });
-    r.add(id, AsteroidShape{ generate_asteroid_shape(sz, radius, RED, 1.25f) });
+    r.add(id, Polygon{ generate_asteroid_shape(sz, radius, RED, 1.25f) });
     switch (sz) {
         case asteroid_size_t::LARGE:  r.add(id, DamageMultiplier{ 10.f  }); break;
         case asteroid_size_t::MEDIUM: r.add(id, DamageMultiplier{  5.f  }); break;

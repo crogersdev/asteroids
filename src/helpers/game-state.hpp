@@ -34,23 +34,30 @@ struct GameState {
     int level;
     int lives;
     int score;
+    std::array<GradientPalette, 3> hud_palettes;
     std::map<asteroid_size_t, uint32_t> remaining_asteroids;
-
-    Entity player_id;
     menu_options_t menu_selected_option;
     state_t current_state;
+    Entity player_id;
+    GradientPalette shield_palette;
 
     GameState(Entity pid)
-    : lives{},
+    : level{},
+      lives{},
       score{},
+      hud_palettes{},
       remaining_asteroids{},
-      level{},
+      menu_selected_option{},
+      current_state{},
       player_id{pid},
-      menu_selected_option(menu_options_t::START),
-      current_state(state_t::MENU) {
+      shield_palette{} {
         lives = 5;
         level = 0;
         score = 0;
+        menu_selected_option = menu_options_t::START;
+        current_state = state_t::MENU;
+        hud_palettes = { green_yellow_red, neon_synth, solar_eclipse };
+        shield_palette = neon_synth;
       };
 
     inline void nextMenuOption(menu_options_t& current) {

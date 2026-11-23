@@ -1,4 +1,5 @@
 #include "helpers/assets-mgr.hpp"
+#include "helpers/hud-stuff.hpp"
 #include "systems/systems.hpp"
 
 #include <raylib.h>
@@ -18,6 +19,8 @@ int main(void) {
     Entity player_id = r.create();
     GameState gs(player_id);
 
+    create_game_huds(r, assets);
+
     r.add(player_id, Shield{ shield_max_energy, shield_max_energy, 0.f, BLACK, BLACK, BLACK });
     r.add(player_id, PlayerInput{ false, false, false, false });
     r.add(player_id, Weapon{
@@ -25,11 +28,8 @@ int main(void) {
         0.f,
         weapon_cooldown_period,
         true });
-    r.add(player_id, PolygonShip{{
-        Line{{ -10.f,  +4.f }, {   0.f, -14.f }, RED, 1.5f },
-        Line{{   0.f, -14.f }, { +10.f,  +4.f }, BLUE, 1.5f },
-        Line{{ +10.f,  +4.f }, {   0.f,   0.f }, GREEN, 1.5f },
-        Line{{   0.f,   0.f }, { -10.f,  +4.f }, YELLOW, 1.5f }}, 
+    r.add(player_id, PolygonShip{
+        player_polygon_shape,
         player_max_speed,
         player_acceleration });
     r.add(player_id, crogersdev::Transform{
@@ -39,11 +39,9 @@ int main(void) {
         player_turn_speed,
         player_drag_coeff,
         player_mass
-        });
+    });
 
     while (!WindowShouldClose()) {
-        float dt = GetFrameTime();
-
         BeginDrawing();
             ClearBackground(BLACK);
 
@@ -68,20 +66,20 @@ int main(void) {
                 player_scoot_and_rotate(r);
                 movement_update(r);
                 weapons_fire(r);
-                shield_color_update(r);
+                shield_color_update(r, gs);
                 player_input(r, player_id, true);
                 eraser(r, gs, assets, player_id);
-                render(r, gs);
+                render(r, gs, player_id);
             }
             if (gs.current_state == state_t::DYING) {
                 player_dies(r, gs, assets, player_id);
                 movement_update(r);
                 eraser(r, gs, assets, player_id);
-                render(r, gs);
+                render(r, gs, player_id);
             }
             if (gs.current_state == state_t::LEVEL_START) {
                 level_init(r, gs, player_id);
-                shield_color_update(r, true);
+                shield_color_update(r, gs, true);
             }
             if (gs.current_state == state_t::LEVEL_CLEAR) {
 
